@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --force && npm run build"
+  command = "npm install && npm run build"
   publish = ".next"
 
 [[plugins]]
@@ -7,8 +7,3 @@
 
 [build.environment]
   NODE_VERSION = "18.20.5"
-  NPM_VERSION = "10.8.2"
-  NEXT_TELEMETRY_DISABLED = "1"
-
-[functions]
-  node_bundler = "esbuild"
