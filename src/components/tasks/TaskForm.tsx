@@ -2,8 +2,9 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
-export default function TaskForm() {
+export default function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
@@ -12,16 +13,24 @@ export default function TaskForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, priority, dueDate }),
-    });
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, priority, dueDate }),
+      });
 
-    setTitle('');
-    setDescription('');
-    setPriority('MEDIUM');
-    setDueDate('');
+      if (!res.ok) throw new Error('Failed to create task');
+
+      toast.success('Task created successfully!');
+      setTitle('');
+      setDescription('');
+      setPriority('MEDIUM');
+      setDueDate('');
+      onTaskCreated?.();
+    } catch (error) {
+      toast.error('Failed to create task');
+    }
   };
 
   return (
@@ -73,7 +82,7 @@ export default function TaskForm() {
 
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition"
         >
           Add Task
         </button>
