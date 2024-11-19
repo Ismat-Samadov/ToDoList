@@ -1,5 +1,3 @@
-
-// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth'
 import { AuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
@@ -35,6 +33,17 @@ export const authOptions: AuthOptions = {
       }
     })
   ],
+  callbacks: {
+    async session({ session, token }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub
+        }
+      }
+    }
+  },
   session: { strategy: "jwt" },
   pages: {
     signIn: '/auth/signin',
