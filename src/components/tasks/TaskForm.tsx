@@ -1,18 +1,26 @@
 // src/components/tasks/TaskForm.tsx
-// src/components/tasks/TaskForm.tsx
 'use client';
 
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-export default function TaskForm() {
+interface TaskFormProps {
+  onTaskAdded: () => void;
+}
+
+export default function TaskForm({ onTaskAdded }: TaskFormProps) {
+  // Format today's date as YYYY-MM-DD for input[type="date"]
+  const today = new Date().toISOString().split('T')[0];
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(today);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
       const res = await fetch('/api/tasks', {
@@ -27,11 +35,15 @@ export default function TaskForm() {
       setTitle('');
       setDescription('');
       setPriority('MEDIUM');
-      setDueDate('');
+      setDueDate(today); // Reset to today's date
+      onTaskAdded();
     } catch (error) {
       toast.error('Failed to create task');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
@@ -42,6 +54,7 @@ export default function TaskForm() {
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
+          disabled={isSubmitting}
         />
       </div>
       
@@ -52,6 +65,7 @@ export default function TaskForm() {
           onChange={(e) => setDescription(e.target.value)}
           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={3}
+          disabled={isSubmitting}
         />
       </div>
       
@@ -61,6 +75,7 @@ export default function TaskForm() {
           value={priority}
           onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={isSubmitting}
         >
           <option value="LOW">Low</option>
           <option value="MEDIUM">Medium</option>
@@ -70,19 +85,34 @@ export default function TaskForm() {
       
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">Due Date</label>
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={dueDate}
+            min={today} // Prevent selecting past dates
+            onChange={(e) => setDueDate(e.target.value)}
+            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isSubmitting}
+          />
+          <button
+            type="button"
+            onClick={() => setDueDate(today)}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+            disabled={isSubmitting}
+          >
+            Today
+          </button>
+        </div>
       </div>
 
       <button
         type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+        className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors ${
+          isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+        disabled={isSubmitting}
       >
-        Add Task
+        {isSubmitting ? 'Adding Task...' : 'Add Task'}
       </button>
     </form>
   );
