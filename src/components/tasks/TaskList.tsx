@@ -1,7 +1,7 @@
 // src/components/tasks/TaskList.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Task } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 
@@ -33,7 +33,7 @@ export default function TaskList() {
 
       if (!res.ok) throw new Error('Failed to update task');
       
-      toast.success('Task updated successfully!');
+      toast.success('Task updated');
       fetchTasks();
     } catch (error) {
       toast.error('Failed to update task');
@@ -50,7 +50,7 @@ export default function TaskList() {
 
       if (!res.ok) throw new Error('Failed to delete task');
       
-      toast.success('Task deleted successfully!');
+      toast.success('Task deleted');
       fetchTasks();
     } catch (error) {
       toast.error('Failed to delete task');
@@ -63,12 +63,12 @@ export default function TaskList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Your Tasks</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-white">Task List</h2>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
-          className="px-3 py-1 border rounded-md"
+          className="px-3 py-1 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="ALL">All Tasks</option>
           <option value="PENDING">Pending</option>
@@ -77,26 +77,24 @@ export default function TaskList() {
         </select>
       </div>
 
-      {filteredTasks.length === 0 ? (
-        <p className="text-gray-500 text-center py-4">No tasks found</p>
-      ) : (
-        filteredTasks.map((task) => (
-          <div key={task.id} className="bg-white p-4 rounded-lg shadow">
+      <div className="space-y-4">
+        {filteredTasks.map((task) => (
+          <div key={task.id} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold">{task.title}</h3>
+              <h3 className="font-semibold text-white">{task.title}</h3>
               <span className={`px-2 py-1 rounded text-sm ${
-                task.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
-                task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-green-100 text-green-800'
+                task.priority === 'HIGH' ? 'bg-red-900 text-red-200' :
+                task.priority === 'MEDIUM' ? 'bg-yellow-900 text-yellow-200' :
+                'bg-green-900 text-green-200'
               }`}>
                 {task.priority}
               </span>
             </div>
             
-            <p className="text-gray-600 text-sm mb-2">{task.description}</p>
+            <p className="text-gray-300 text-sm mb-2">{task.description}</p>
             
             {task.dueDate && (
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-gray-400 mb-2">
                 Due: {new Date(task.dueDate).toLocaleDateString()}
               </p>
             )}
@@ -105,7 +103,7 @@ export default function TaskList() {
               <select
                 value={task.status}
                 onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                className="px-2 py-1 border rounded text-sm"
+                className="px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="PENDING">Pending</option>
                 <option value="IN_PROGRESS">In Progress</option>
@@ -114,14 +112,18 @@ export default function TaskList() {
 
               <button
                 onClick={() => deleteTask(task.id)}
-                className="text-red-600 hover:text-red-800 text-sm"
+                className="text-red-400 hover:text-red-300 text-sm transition-colors"
               >
                 Delete
               </button>
             </div>
           </div>
-        ))
-      )}
+        ))}
+
+        {filteredTasks.length === 0 && (
+          <p className="text-gray-400 text-center py-4">No tasks found</p>
+        )}
+      </div>
     </div>
   );
 }

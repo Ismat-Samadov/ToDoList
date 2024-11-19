@@ -1,26 +1,29 @@
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { SessionProvider } from 'next-auth/react'
-import Providers from '@/components/Providers'
+// src/app/layout.tsx
+import Providers from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
-
-const inter = Inter({ subsets: ['latin'] })
+import './globals.css';
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-      <Providers>
-  <div className="min-h-screen bg-gray-50">
-    <Toaster position="top-right" />
-    {children}
-  </div>
-</Providers>
+      <body className="bg-gray-900 min-h-screen text-white">
+        <Providers>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#374151',
+                color: '#fff',
+              },
+            }}
+          />
+          {children}
+        </Providers>
       </body>
     </html>
-  )
+  );
 }
