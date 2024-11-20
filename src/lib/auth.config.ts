@@ -49,4 +49,3 @@ export const authOptions: AuthOptions = {
     signIn: '/auth/signin',
   },
 };
-
