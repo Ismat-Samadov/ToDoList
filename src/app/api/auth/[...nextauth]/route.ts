@@ -2,6 +2,15 @@
 import NextAuth from 'next-auth';
 import { authOptions } from '@/lib/auth.config';
 
+
+// import NextAuth from 'next-auth';
+import type { AuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+
+
+
 const authOptions: AuthOptions = {
  providers: [
    CredentialsProvider({
