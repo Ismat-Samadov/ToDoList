@@ -1,4 +1,6 @@
 // src/app/api/auth/[...nextauth]/route.ts
+import NextAuth from 'next-auth';
+import { authOptions } from '@/lib/auth.config';
 import NextAuth, { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
@@ -49,6 +51,8 @@ export const authOptions: AuthOptions = {
    signIn: '/auth/signin',
  },
 };
+
+
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
