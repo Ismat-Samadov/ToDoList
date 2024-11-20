@@ -1,12 +1,9 @@
-// src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+// src/lib/auth.ts
 import { AuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-// Move authOptions to a separate config file
-// src/lib/auth.ts
 export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
@@ -47,11 +44,9 @@ export const authOptions: AuthOptions = {
       };
     }
   },
+  session: { strategy: "jwt" },
   pages: {
     signIn: '/auth/signin',
   },
 };
 
-// Export route handlers
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
