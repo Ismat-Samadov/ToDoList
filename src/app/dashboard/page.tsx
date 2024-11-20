@@ -1,7 +1,7 @@
 // src/app/dashboard/page.tsx
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
-import { authOptions } from '../api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth.config';
 import DashboardContent from './DashboardContent';
 
 export default async function DashboardPage() {
