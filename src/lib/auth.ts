@@ -1,10 +1,12 @@
 // src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from 'next-auth'
-import { AuthOptions } from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { AuthOptions } from 'next-auth';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
+// Move authOptions to a separate config file
+// src/lib/auth.ts
 export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
@@ -15,22 +17,22 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
-        })
+        });
 
         if (!user || !await bcrypt.compare(credentials.password, user.password)) {
-          return null
+          return null;
         }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-        }
+        };
       }
     })
   ],
@@ -42,14 +44,14 @@ export const authOptions: AuthOptions = {
           ...session.user,
           id: token.sub
         }
-      }
+      };
     }
   },
-  session: { strategy: "jwt" },
   pages: {
     signIn: '/auth/signin',
   },
-}
+};
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+// Export route handlers
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
