@@ -16,9 +16,10 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log('Attempting login with:', email);
 
     try {
+      console.log('Attempting login with:', email);
+
       const result = await signIn('credentials', {
         email,
         password,
@@ -31,7 +32,8 @@ export default function SignInForm() {
         console.error('Login error:', result.error);
         toast.error('Invalid credentials');
       } else if (result?.ok) {
-        // Force session reload to sync frontend with backend
+        // Ensure session reload
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Optional delay for backend sync
         const session = await getSession();
         console.log('Updated session:', session);
 
@@ -42,10 +44,10 @@ export default function SignInForm() {
         }
 
         const userId = session.user.id;
-        const ipAddress = 'IP Unavailable'; // Placeholder for IP; middleware or API can provide this
+        const ipAddress = 'IP Unavailable'; // Middleware or server-side logic can replace this
         const userAgent = navigator.userAgent || 'Unknown User-Agent';
 
-        // Log the user activity
+        // Log user activity
         try {
           await logUserActivity({
             userId,
@@ -59,7 +61,7 @@ export default function SignInForm() {
         }
 
         toast.success('Welcome back!');
-        router.push('/dashboard');
+        router.push('/dashboard'); // Redirect to the dashboard
       }
     } catch (error) {
       console.error('Sign in error:', error);
