@@ -2,21 +2,15 @@
 import NextAuth from 'next-auth';
 import { authOptions } from '@/lib/auth.config';
 import { logUserActivity } from '@/lib/logging';
-import { NextAuthOptions } from 'next-auth';
 
 const handler = NextAuth({
   ...authOptions,
   callbacks: {
-    async signIn({ user, account, req }) {
+    async signIn({ user, account }) {
       try {
-        // Extract IP and User-Agent from the incoming request
-        const ipAddress =
-          req?.headers['x-forwarded-for']?.toString()?.split(',')[0] ||
-          req?.socket?.remoteAddress ||
-          'IP Unavailable';
-
-        const userAgent =
-          req?.headers['user-agent'] || 'User-Agent Unavailable';
+        // Use placeholder values since `req` is not directly available
+        const ipAddress = 'IP Unavailable'; // Replace with actual logic in API middleware
+        const userAgent = 'User-Agent Unavailable'; // Replace with actual logic in API middleware
 
         // Log user activity
         await logUserActivity({
@@ -35,7 +29,8 @@ const handler = NextAuth({
       return true; // Allow sign-in to proceed
     },
   },
-} as NextAuthOptions);
+});
 
 export { handler as GET, handler as POST };
+
 
