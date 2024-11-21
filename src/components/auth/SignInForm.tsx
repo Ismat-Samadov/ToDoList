@@ -17,6 +17,7 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log('Attempting login with:', email); // Debug log
   
     try {
       const result = await signIn('credentials', {
@@ -24,25 +25,17 @@ export default function SignInForm() {
         password,
         redirect: false,
       });
-  
-      console.log('Sign in result:', result); // Add this for debugging
+      
+      console.log('Sign in result:', result); // Debug log
   
       if (result?.error) {
+        console.error('Login error:', result.error); // Debug log
         toast.error('Invalid credentials');
-      } else {
-        // Get user ID from session after successful signin
-        const session = await fetch('/api/auth/session');
-        const sessionData = await session.json();
+      } else if (result?.ok) {
+        // Wait briefly for the session to be set up
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        await logUserActivity({
-          userId: sessionData.user?.id,
-          action: 'LOGIN',
-          metadata: {
-            email,
-            timestamp: new Date().toISOString()
-          }
-        });
-  
+        // Then redirect
         toast.success('Welcome back!');
         router.push('/dashboard');
       }
