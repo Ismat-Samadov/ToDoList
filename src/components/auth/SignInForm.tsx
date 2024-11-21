@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
@@ -31,17 +31,11 @@ export default function SignInForm() {
         console.error('Login error:', result.error);
         toast.error('Invalid credentials');
       } else if (result?.ok) {
-        // Simulate a delay for better UX (optional)
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Force session reload to sync frontend with backend
+        const session = await getSession();
+        console.log('Updated session:', session);
 
-        // Fetch the current session for user data
-        const userResponse = await fetch('/api/auth/session');
-        const userSession = await userResponse.json();
-
-        console.log('User session:', userSession);
-
-        const userId = userSession?.user?.id || null;
-        const ipAddress = userSession?.user?.ip || 'Unknown IP'; // Placeholder
+        const userId = session?.user?.id || null;
         const userAgent = navigator.userAgent || 'Unknown User-Agent';
 
         // Log the user activity
@@ -50,7 +44,7 @@ export default function SignInForm() {
             userId,
             action: 'LOGIN',
             metadata: { email },
-            ipAddress,
+            ipAddress: 'IP Unavailable', // Placeholder for actual IP if needed
             userAgent,
           });
         }

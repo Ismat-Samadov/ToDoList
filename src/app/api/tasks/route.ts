@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
-import { logUserActivity } from '@/lib/logging'; // Import logging function
+import { logUserActivity } from '@/lib/logging';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -16,22 +16,22 @@ export async function POST(request: Request) {
     const task = await prisma.task.create({
       data: {
         ...body,
-        userId: (session.user as any).id,
+        userId: session.user.id as string, // Explicitly typing `id` as string
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
       },
     });
 
     // Log task creation activity
     await logUserActivity({
-      userId: session.user.id,
+      userId: session.user.id as string,
       action: 'TASK_CREATE',
       metadata: {
         taskId: task.id,
         title: task.title,
         dueDate: task.dueDate,
       },
-      ipAddress: '127.0.0.1', // Placeholder, replace with actual logic
-      userAgent: 'User-Agent Unavailable', // Replace with req.headers['user-agent'] if available
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1', // Extract IP if available
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable', // Extract User-Agent
     });
 
     return NextResponse.json(task);
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return new NextResponse('Unauthorized', { status: 401 });
@@ -52,19 +52,19 @@ export async function GET() {
 
   try {
     const tasks = await prisma.task.findMany({
-      where: { userId: (session.user as any).id },
+      where: { userId: session.user.id as string }, // Explicitly typing `id` as string
       orderBy: { createdAt: 'desc' },
     });
 
     // Log task fetch activity
     await logUserActivity({
-      userId: session.user.id,
+      userId: session.user.id as string,
       action: 'TASK_FETCH',
       metadata: {
         totalTasksFetched: tasks.length,
       },
-      ipAddress: '127.0.0.1', // Placeholder, replace with actual logic
-      userAgent: 'User-Agent Unavailable', // Replace with req.headers['user-agent'] if available
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1', // Extract IP if available
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable', // Extract User-Agent
     });
 
     return NextResponse.json(tasks);
