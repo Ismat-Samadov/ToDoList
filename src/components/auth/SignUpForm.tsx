@@ -13,7 +13,6 @@ export default function SignUpForm() {
  const [isLoading, setIsLoading] = useState(false);
  const router = useRouter();
 
-
  const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setIsLoading(true);
@@ -26,15 +25,25 @@ export default function SignUpForm() {
     });
 
     const data = await res.json();
-    console.log('Signup response:', data); // Add this for debugging
+    console.log('Signup response:', data);
 
     if (res.ok) {
+      await logUserActivity({
+        userId: data.id, // Use the newly created user's ID
+        action: 'SIGNUP',
+        metadata: {
+          name,
+          email,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       toast.success('Account created successfully!');
-      // Delay navigation slightly to ensure toast is shown
       setTimeout(() => {
         router.push('/auth/signin');
       }, 1000);
     } else {
+      console.error('Signup failed:', data.message);
       toast.error(data.message || 'Something went wrong');
     }
   } catch (error) {
@@ -44,7 +53,6 @@ export default function SignUpForm() {
     setIsLoading(false);
   }
 };
-
  return (
    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
      <div className="space-y-4">
