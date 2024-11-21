@@ -21,7 +21,7 @@ interface TaskFormProps {
 
 export default function TaskForm({ onTaskAdded }: TaskFormProps) {
   const today = new Date().toISOString().split('T')[0];
-  const { data: session, status } = useSession() as { data: CustomSession | null };
+  const { data: session, status } = useSession() as { data: CustomSession | null; status: 'authenticated' | 'unauthenticated' | 'loading' };
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
