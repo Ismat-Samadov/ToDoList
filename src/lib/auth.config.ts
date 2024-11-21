@@ -15,7 +15,7 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            console.error('Missing credentials');
+            console.error('Missing credentials:', credentials);
             return null;
           }
 
@@ -29,7 +29,7 @@ export const authOptions: AuthOptions = {
           });
 
           if (!user) {
-            console.error('User not found');
+            console.error(`User not found: ${credentials.email}`);
             return null;
           }
 
@@ -39,7 +39,7 @@ export const authOptions: AuthOptions = {
           );
 
           if (!isPasswordValid) {
-            console.error('Invalid password');
+            console.error(`Invalid password for user: ${credentials.email}`);
             return null;
           }
 
@@ -71,13 +71,15 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Pass token data to session
+      // Add user details from token to session
       if (token) {
         session.user = {
           id: token.id as string,
           email: token.email as string,
           name: token.name as string,
         };
+      } else {
+        console.error('Session token is missing.');
       }
       return session;
     },
@@ -86,5 +88,5 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
-  debug: true, // Enable debug logs for better troubleshooting
+  debug: true, // Enable debug logs for troubleshooting
 };
