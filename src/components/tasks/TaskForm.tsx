@@ -6,13 +6,22 @@ import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
 import { useSession } from 'next-auth/react';
 
+// Add session type
+interface CustomSession {
+ user: {
+   id: string;
+   email?: string;
+   name?: string;
+ }
+}
+
 interface TaskFormProps {
  onTaskAdded: () => void;
 }
 
 export default function TaskForm({ onTaskAdded }: TaskFormProps) {
  const today = new Date().toISOString().split('T')[0];
- const { data: session } = useSession();
+ const { data: session } = useSession() as { data: CustomSession | null };
  
  const [title, setTitle] = useState('');
  const [description, setDescription] = useState('');
@@ -22,6 +31,11 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
  const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault();
+   if (!session?.user?.id) {
+     toast.error('You must be logged in');
+     return;
+   }
+   
    setIsSubmitting(true);
    
    try {
@@ -35,9 +49,8 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
      
      const task = await res.json();
 
-     // Log task creation
      await logUserActivity({
-       userId: session?.user?.id as string,
+       userId: session.user.id,
        action: 'TASK_CREATE',
        metadata: {
          taskId: task.id,
@@ -61,6 +74,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
    }
  };
 
+ // Rest of the component remains the same...
  return (
    <form onSubmit={handleSubmit} className="space-y-4">
      <div>
