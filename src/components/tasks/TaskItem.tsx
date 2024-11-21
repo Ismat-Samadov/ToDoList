@@ -3,19 +3,29 @@ import { Task } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { logUserActivity } from '@/lib/logging';
 
+interface CustomSession {
+ user: {
+   id: string;
+   email?: string;
+   name?: string;
+ }
+}
+
 interface TaskItemProps {
  task: Task;
  onStatusChange: (id: string, status: string) => void;
 }
 
 export default function TaskItem({ task, onStatusChange }: TaskItemProps) {
- const { data: session } = useSession();
+ const { data: session } = useSession() as { data: CustomSession | null };
 
  const handleStatusChange = async (id: string, newStatus: string) => {
+   if (!session?.user?.id) return;
+   
    onStatusChange(id, newStatus);
    
    await logUserActivity({
-     userId: session?.user?.id as string,
+     userId: session.user.id,
      action: 'STATUS_CHANGE',
      metadata: {
        taskId: id,
