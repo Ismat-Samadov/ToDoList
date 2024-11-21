@@ -1,51 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
 
 export default function SignInForm() {
- const [email, setEmail] = useState('');
- const [password, setPassword] = useState('');
- const [isLoading, setIsLoading] = useState(false);
- const router = useRouter();
- const { data: session } = useSession();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
- const handleSubmit = async (e: React.FormEvent) => {
-   e.preventDefault();
-   setIsLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-   try {
-     const result = await signIn('credentials', {
-       email,
-       password,
-       redirect: false,
-     });
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
 
-     if (result?.error) {
-       toast.error('Invalid credentials');
-     } else {
-       const session = useSession();
-       await logUserActivity({
-         userId: session?.data?.user?.id as string,
-         action: 'LOGIN',
-         metadata: {
-           email,
-           timestamp: new Date().toISOString()
-         }
-       });
-       
-       toast.success('Welcome back!');
-       router.push('/dashboard');
-     }
-   } catch (error) {
-     toast.error('Something went wrong');
-   } finally {
-     setIsLoading(false);
-   }
- };
+      if (result?.error) {
+        toast.error('Invalid credentials');
+      } else {
+        await logUserActivity({
+          userId: result?.ok ? email : '',
+          action: 'LOGIN',
+          metadata: {
+            email,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        toast.success('Welcome back!');
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      toast.error('Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
  return (
    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
