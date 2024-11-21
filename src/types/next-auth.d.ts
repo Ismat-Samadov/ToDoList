@@ -16,3 +16,12 @@ declare module 'next-auth' {
     name?: string | null;
   }
 }
+
+// Add this for logging activity types
+declare global {
+  interface UserActivity {
+    userId: string;
+    action: string;
+    metadata?: Record<string, any>;
+  }
+}
