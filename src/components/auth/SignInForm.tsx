@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
@@ -11,6 +11,7 @@ export default function SignInForm() {
  const [password, setPassword] = useState('');
  const [isLoading, setIsLoading] = useState(false);
  const router = useRouter();
+ const { data: session } = useSession();
 
  const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault();
@@ -26,9 +27,9 @@ export default function SignInForm() {
      if (result?.error) {
        toast.error('Invalid credentials');
      } else {
-       const session = await getSession();
+       const session = useSession();
        await logUserActivity({
-         userId: session?.user?.id as string,
+         userId: session?.data?.user?.id as string,
          action: 'LOGIN',
          metadata: {
            email,
