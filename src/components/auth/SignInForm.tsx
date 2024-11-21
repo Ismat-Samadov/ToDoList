@@ -35,18 +35,27 @@ export default function SignInForm() {
         const session = await getSession();
         console.log('Updated session:', session);
 
-        const userId = session?.user?.id || null;
+        if (!session?.user?.id) {
+          console.error('Session user ID missing');
+          toast.error('Session not properly initialized.');
+          return;
+        }
+
+        const userId = session.user.id;
+        const ipAddress = 'IP Unavailable'; // Placeholder, middleware or API can provide this
         const userAgent = navigator.userAgent || 'Unknown User-Agent';
 
         // Log the user activity
-        if (userId) {
+        try {
           await logUserActivity({
             userId,
             action: 'LOGIN',
             metadata: { email },
-            ipAddress: 'IP Unavailable', // Placeholder for actual IP if needed
+            ipAddress,
             userAgent,
           });
+        } catch (logError) {
+          console.error('Failed to log user activity:', logError);
         }
 
         toast.success('Welcome back!');

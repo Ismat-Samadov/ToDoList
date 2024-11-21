@@ -15,7 +15,7 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            console.log('Missing credentials');
+            console.error('Missing credentials');
             return null;
           }
 
@@ -28,8 +28,18 @@ export const authOptions: AuthOptions = {
             userFound: !!user,
           });
 
-          if (!user || !(await bcrypt.compare(credentials.password, user.password))) {
-            console.log('Invalid credentials');
+          if (!user) {
+            console.error('User not found');
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            console.error('Invalid password');
             return null;
           }
 
@@ -44,7 +54,7 @@ export const authOptions: AuthOptions = {
             name: user.name,
           };
         } catch (error) {
-          console.error('Auth error:', error);
+          console.error('Authorization error:', error);
           return null;
         }
       },
@@ -53,7 +63,7 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // Pass user data to the token for future reference
+        // Add user details to token
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
@@ -61,7 +71,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Attach user data from token to session
+      // Pass token data to session
       if (token) {
         session.user = {
           id: token.id as string,

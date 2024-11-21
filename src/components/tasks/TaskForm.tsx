@@ -21,7 +21,7 @@ interface TaskFormProps {
 
 export default function TaskForm({ onTaskAdded }: TaskFormProps) {
   const today = new Date().toISOString().split('T')[0];
-  const { data: session } = useSession() as { data: CustomSession | null };
+  const { data: session, status } = useSession() as { data: CustomSession | null };
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -31,8 +31,15 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Handle session loading or invalid session state
+    if (status === 'loading') {
+      toast.error('Session is still loading. Please wait and try again.');
+      return;
+    }
+
     if (!session?.user?.id) {
-      toast.error('You must be logged in');
+      toast.error('You must be logged in to create tasks.');
       return;
     }
 
@@ -54,17 +61,21 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
       const task = await res.json();
 
       // Log user activity
-      await logUserActivity({
-        userId: session.user.id,
-        action: 'TASK_CREATE',
-        metadata: {
-          taskId: task.id,
-          title: task.title,
-          priority: task.priority,
-          dueDate: task.dueDate,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      try {
+        await logUserActivity({
+          userId: session.user.id,
+          action: 'TASK_CREATE',
+          metadata: {
+            taskId: task.id,
+            title: task.title,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (logError) {
+        console.error('Failed to log task creation activity:', logError);
+      }
 
       toast.success('Task created successfully!');
       setTitle('');
@@ -73,8 +84,8 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
       setDueDate(today);
       onTaskAdded();
     } catch (error) {
-      console.error('Error logging task creation:', error);
-      toast.error('Failed to create task');
+      console.error('Error creating task:', error);
+      toast.error('Failed to create task. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
