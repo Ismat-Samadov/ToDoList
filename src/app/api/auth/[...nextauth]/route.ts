@@ -14,7 +14,8 @@ const handler = NextAuth({
           action: 'LOGIN',
           metadata: {
             email: user.email,
-            loginMethod: account.provider,
+            loginMethod: account?.provider || 'Unknown',
+
           },
           ipAddress: 'IP Unavailable', // Placeholder for IP
           userAgent: 'User-Agent Unavailable', // Placeholder for User-Agent
