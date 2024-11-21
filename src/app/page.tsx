@@ -8,7 +8,7 @@ export default function HomePage() {
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <span className="text-xl font-bold text-white">ZenTasks</span>
+            <span className="text-xl font-bold text-white">MyFrog</span>
           </div>
         </div>
       </nav>
@@ -77,7 +77,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 py-8">
         <div className="container mx-auto px-4 text-center text-gray-400">
-          <p>&copy; 2024 ZenTasks. All rights reserved.</p>
+          <p>&copy; 2024 MyFrog. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -9,7 +9,7 @@ export default function SignInPage() {
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4 py-4">
           <Link href="/" className="text-xl font-bold text-white hover:text-gray-200">
-            ZenTasks
+          MyFrog
           </Link>
         </div>
       </nav>

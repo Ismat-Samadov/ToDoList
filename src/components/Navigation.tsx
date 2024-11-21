@@ -12,7 +12,7 @@ export default function Navigation() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link href="/dashboard" className="text-xl font-bold text-white hover:text-gray-200">
-            ZenTasks
+          MyFrog
           </Link>
           
           <div className="flex items-center gap-4">
