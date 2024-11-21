@@ -1,8 +1,7 @@
-// src/components/auth/SignInForm.tsx
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
@@ -27,9 +26,9 @@ export default function SignInForm() {
      if (result?.error) {
        toast.error('Invalid credentials');
      } else {
-       // Log successful login
+       const session = await getSession();
        await logUserActivity({
-         userId: result?.user?.id as string,
+         userId: session?.user?.id as string,
          action: 'LOGIN',
          metadata: {
            email,
