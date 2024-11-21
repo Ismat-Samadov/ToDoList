@@ -8,14 +8,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
+model UserActivity {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  tasks     Task[]
+  userId    String
+  action    String
+  metadata  Json?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String?
+  password     String
+  tasks        Task[]
+  activities   UserActivity[] // Add this line
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
 model Task {
