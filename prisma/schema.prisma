@@ -12,7 +12,10 @@ model UserActivity {
   id        String   @id @default(cuid())
   userId    String
   action    String
-  metadata  Json?
+  metadata  Json?    @default("{}")
+  ipAddress String?
+  userAgent String?
+  sessionId String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
