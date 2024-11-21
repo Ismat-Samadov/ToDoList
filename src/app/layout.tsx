@@ -22,9 +22,15 @@ export default function RootLayout({
      </head>
      <body className="bg-gray-900 min-h-screen text-white">
        <noscript>
-         <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KS2H84HC"
-           height="0" width="0" style="display:none;visibility:hidden">
-         </iframe>
+       <iframe 
+  src="https://www.googletagmanager.com/ns.html?id=GTM-KS2H84HC"
+  height={0}
+  width={0} 
+  style={{
+    display: 'none',
+    visibility: 'hidden'
+  }}
+/>
        </noscript>
        <Providers>
          <Toaster
