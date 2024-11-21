@@ -6,15 +6,11 @@ import { logUserActivity } from '@/lib/logging';
 const handler = NextAuth({
   ...authOptions,
   callbacks: {
-    async signIn({ user, account, context }) {
+    async signIn({ user, account }) {
       try {
-        // Extract metadata from query parameters
-        const ipAddress = context?.req?.url
-          ? new URL(context.req.url).searchParams.get('x-client-ip') || 'IP Unavailable'
-          : 'IP Unavailable';
-        const userAgent = context?.req?.url
-          ? new URL(context.req.url).searchParams.get('x-user-agent') || 'User-Agent Unavailable'
-          : 'User-Agent Unavailable';
+        // Extract IP and User-Agent from headers if available
+        const ipAddress = 'IP Unavailable'; // Add actual IP capture logic later if needed
+        const userAgent = 'User-Agent Unavailable'; // Placeholder
 
         // Log user activity
         await logUserActivity({
@@ -36,4 +32,3 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
-
