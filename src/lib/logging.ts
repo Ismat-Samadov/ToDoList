@@ -6,6 +6,7 @@ type ActivityType =
   | 'LOGIN'
   | 'SIGNUP'
   | 'TASK_CREATE'
+  | 'TASK_FETCH'
   | 'TASK_UPDATE'
   | 'TASK_DELETE'
   | 'STATUS_CHANGE'
