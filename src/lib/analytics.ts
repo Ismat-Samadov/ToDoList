@@ -1,3 +1,4 @@
+// src/lib/analytics.ts
 interface EventProps {
     action: string;
     category: string;
