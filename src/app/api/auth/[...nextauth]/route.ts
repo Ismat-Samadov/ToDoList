@@ -6,29 +6,23 @@ import { logUserActivity } from '@/lib/logging';
 const handler = NextAuth({
   ...authOptions,
   callbacks: {
+    ...authOptions.callbacks,
     async signIn({ user, account }) {
       try {
-        // Use placeholder values since `req` is not directly available
-        const ipAddress = 'IP Unavailable'; // Replace with actual logic in API middleware
-        const userAgent = 'User-Agent Unavailable'; // Replace with actual logic in API middleware
-
-        // Log user activity
         await logUserActivity({
           userId: user.id,
           action: 'LOGIN',
           metadata: {
             email: user.email,
-            loginMethod: account?.provider || 'Unknown',
-          },
-          ipAddress,
-          userAgent,
+            loginMethod: account?.provider || 'credentials',
+          }
         });
       } catch (error) {
         console.error('Error logging sign-in activity:', error);
       }
-      return true; // Allow sign-in to proceed
-    },
-  },
+      return true;
+    }
+  }
 });
 
 export { handler as GET, handler as POST };

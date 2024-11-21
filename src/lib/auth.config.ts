@@ -10,60 +10,45 @@ export const authOptions: AuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            console.error('Missing credentials:', credentials);
-            return null;
-          }
-
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-
-          console.log('Login attempt:', {
-            email: credentials.email,
-            userFound: !!user,
-          });
-
-          if (!user) {
-            console.error(`User not found: ${credentials.email}`);
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            console.error(`Invalid password for user: ${credentials.email}`);
-            return null;
-          }
-
-          console.log('Login successful:', {
-            userId: user.id,
-            email: user.email,
-          });
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          };
-        } catch (error) {
-          console.error('Authorization error:', error);
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
-      },
-    }),
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
+
+        if (!user || !user.password) {
+          return null;
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        };
+      }
+    })
   ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // Add user details to token
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
@@ -71,22 +56,16 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Add user details from token to session
-      if (token) {
-        session.user = {
-          id: token.id as string,
-          email: token.email as string,
-          name: token.name as string,
-        };
-      } else {
-        console.error('Session token is missing.');
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
       return session;
-    },
+    }
   },
-  session: { strategy: 'jwt' },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/signin'
   },
-  debug: true, // Enable debug logs for troubleshooting
+  secret: process.env.NEXTAUTH_SECRET,
 };
