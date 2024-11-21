@@ -1,7 +1,7 @@
 // middleware.ts (at the root of your project)
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export function middleware(req) {
+export function middleware(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'Unknown IP';
   const userAgent = req.headers.get('user-agent') || 'Unknown User-Agent';
