@@ -1,3 +1,5 @@
+// src/components/auth/SignInForm.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -15,30 +17,37 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+  
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-
+  
+      console.log('Sign in result:', result); // Add this for debugging
+  
       if (result?.error) {
         toast.error('Invalid credentials');
       } else {
+        // Get user ID from session after successful signin
+        const session = await fetch('/api/auth/session');
+        const sessionData = await session.json();
+        
         await logUserActivity({
-          userId: result?.ok ? email : '',
+          userId: sessionData.user?.id,
           action: 'LOGIN',
           metadata: {
             email,
             timestamp: new Date().toISOString()
           }
         });
-        
+  
         toast.success('Welcome back!');
         router.push('/dashboard');
       }
     } catch (error) {
+      console.error('Sign in error:', error);
       toast.error('Something went wrong');
     } finally {
       setIsLoading(false);

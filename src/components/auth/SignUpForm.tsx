@@ -13,42 +13,37 @@ export default function SignUpForm() {
  const [isLoading, setIsLoading] = useState(false);
  const router = useRouter();
 
+
  const handleSubmit = async (e: React.FormEvent) => {
-   e.preventDefault();
-   setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-   try {
-     const res = await fetch('/api/auth/signup', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ name, email, password }),
-     });
+  try {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
 
-     const data = await res.json();
+    const data = await res.json();
+    console.log('Signup response:', data); // Add this for debugging
 
-     if (res.ok) {
-       // Log successful signup
-       await logUserActivity({
-         userId: data.user.id,
-         action: 'SIGNUP',
-         metadata: {
-           name,
-           email,
-           timestamp: new Date().toISOString()
-         }
-       });
-
-       toast.success('Account created successfully!');
-       router.push('/auth/signin');
-     } else {
-       toast.error(data.message || 'Something went wrong');
-     }
-   } catch (error) {
-     toast.error('Something went wrong');
-   } finally {
-     setIsLoading(false);
-   }
- };
+    if (res.ok) {
+      toast.success('Account created successfully!');
+      // Delay navigation slightly to ensure toast is shown
+      setTimeout(() => {
+        router.push('/auth/signin');
+      }, 1000);
+    } else {
+      toast.error(data.message || 'Something went wrong');
+    }
+  } catch (error) {
+    console.error('Signup error:', error);
+    toast.error('Something went wrong');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
  return (
    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
