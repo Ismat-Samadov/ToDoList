@@ -42,7 +42,7 @@ export default function SignInForm() {
         }
 
         const userId = session.user.id;
-        const ipAddress = 'IP Unavailable'; // Placeholder, middleware or API can provide this
+        const ipAddress = 'IP Unavailable'; // Placeholder for IP; middleware or API can provide this
         const userAgent = navigator.userAgent || 'Unknown User-Agent';
 
         // Log the user activity
