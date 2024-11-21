@@ -7,6 +7,14 @@ import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import { logUserActivity } from '@/lib/logging';
 
+interface CustomSession {
+ user: {
+   id: string;
+   email?: string;
+   name?: string;
+ }
+}
+
 interface TaskListProps {
  refreshTrigger: number;
 }
@@ -15,7 +23,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
  const [tasks, setTasks] = useState<Task[]>([]);
  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
  const [isLoading, setIsLoading] = useState(false);
- const { data: session } = useSession();
+ const { data: session } = useSession() as { data: CustomSession | null };
 
  useEffect(() => {
    fetchTasks();
@@ -35,6 +43,8 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
  };
 
  const updateTaskStatus = async (id: string, status: string) => {
+   if (!session?.user?.id) return;
+
    try {
      const res = await fetch(`/api/tasks/${id}`, {
        method: 'PATCH',
@@ -44,14 +54,12 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
 
      if (!res.ok) throw new Error('Failed to update task');
      
-     const task = tasks.find(t => t.id === id);
-     
      await logUserActivity({
-       userId: session?.user?.id as string,
+       userId: session.user.id,
        action: 'STATUS_CHANGE',
        metadata: {
          taskId: id,
-         oldStatus: task?.status,
+         oldStatus: tasks.find(t => t.id === id)?.status,
          newStatus: status,
          timestamp: new Date().toISOString()
        }
@@ -65,7 +73,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
  };
 
  const deleteTask = async (id: string) => {
-   if (!confirm('Are you sure you want to delete this task?')) return;
+   if (!confirm('Are you sure you want to delete this task?') || !session?.user?.id) return;
    
    try {
      const res = await fetch(`/api/tasks/${id}`, {
@@ -75,7 +83,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
      if (!res.ok) throw new Error('Failed to delete task');
 
      await logUserActivity({
-       userId: session?.user?.id as string,
+       userId: session.user.id,
        action: 'TASK_DELETE',
        metadata: {
          taskId: id,
