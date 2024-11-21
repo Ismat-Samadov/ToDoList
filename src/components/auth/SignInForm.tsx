@@ -17,7 +17,7 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log('Attempting login with:', email); // Debug log
+    console.log('Attempting login with:', email);
   
     try {
       const result = await signIn('credentials', {
@@ -26,16 +26,24 @@ export default function SignInForm() {
         redirect: false,
       });
       
-      console.log('Sign in result:', result); // Debug log
+      console.log('Sign in result:', result);
   
       if (result?.error) {
-        console.error('Login error:', result.error); // Debug log
+        console.error('Login error:', result.error);
         toast.error('Invalid credentials');
       } else if (result?.ok) {
-        // Wait briefly for the session to be set up
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Then redirect
+        // Add logging back
+        await logUserActivity({
+          userId: email, // We'll use email as temporary ID until session is fully loaded
+          action: 'LOGIN',
+          metadata: {
+            email,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
         toast.success('Welcome back!');
         router.push('/dashboard');
       }
@@ -46,7 +54,6 @@ export default function SignInForm() {
       setIsLoading(false);
     }
   };
-
  return (
    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
      <div className="space-y-4">
