@@ -36,8 +36,7 @@ export const authOptions: AuthOptions = {
          console.log('Login successful:', {
            userId: user.id,
            email: user.email
-         }npx prisma migrate reset
-);
+         });
 
          return {
            id: user.id,
