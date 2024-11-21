@@ -1,8 +1,14 @@
 // src/app/layout.tsx
+import { Metadata } from 'next'
 import Providers from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 import Script from 'next/script';
 import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'MyFrog.me - Task Management Made Simple',
+  description: 'Organize your tasks efficiently with MyFrog.me',
+}
 
 export default function RootLayout({
  children,
