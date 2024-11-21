@@ -14,7 +14,7 @@ model User {
   name         String?
   password     String
   tasks        Task[]
-  activities   UserActivity[] // Add this line
+  activities   UserActivity[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -28,7 +28,7 @@ model UserActivity {
   userAgent String?
   sessionId String?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade) // Add `onDelete: Cascade`
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Task {
@@ -39,11 +39,10 @@ model Task {
   priority    Priority  @default(MEDIUM)
   dueDate     DateTime?
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade) // Add `onDelete: Cascade`
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
-
 
 enum Status {
   PENDING
