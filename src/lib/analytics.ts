@@ -1,5 +1,5 @@
 // src/lib/analytics.ts
-export const GA_TRACKING_ID = 'G-XXXXXXXXXX' // Your GA4 ID
+export const GA_TRACKING_ID = 'G-KS2H84HC' // Your GA4 ID
 
 export const pageview = (url: string) => {
   window.gtag('config', GA_TRACKING_ID, {
