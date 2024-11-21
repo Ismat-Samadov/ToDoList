@@ -1,5 +1,4 @@
 // src/components/auth/SignInForm.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -18,85 +17,98 @@ export default function SignInForm() {
     e.preventDefault();
     setIsLoading(true);
     console.log('Attempting login with:', email);
-  
+
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-      
+
       console.log('Sign in result:', result);
-  
+
       if (result?.error) {
         console.error('Login error:', result.error);
         toast.error('Invalid credentials');
       } else if (result?.ok) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Add logging back
-        await logUserActivity({
-          userId: email, // We'll use email as temporary ID until session is fully loaded
-          action: 'LOGIN',
-          metadata: {
-            email,
-            timestamp: new Date().toISOString()
-          }
-        });
-        
+        // Simulate a delay for better UX (optional)
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Fetch the current session for user data
+        const userResponse = await fetch('/api/auth/session');
+        const userSession = await userResponse.json();
+
+        console.log('User session:', userSession);
+
+        const userId = userSession?.user?.id || null;
+        const ipAddress = userSession?.user?.ip || 'Unknown IP'; // Placeholder
+        const userAgent = navigator.userAgent || 'Unknown User-Agent';
+
+        // Log the user activity
+        if (userId) {
+          await logUserActivity({
+            userId,
+            action: 'LOGIN',
+            metadata: { email },
+            ipAddress,
+            userAgent,
+          });
+        }
+
         toast.success('Welcome back!');
         router.push('/dashboard');
       }
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error('Something went wrong');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
- return (
-   <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-     <div className="space-y-4">
-       <div>
-         <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-           Email
-         </label>
-         <input
-           id="email"
-           type="email"
-           required
-           value={email}
-           onChange={(e) => setEmail(e.target.value)}
-           className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-           placeholder="you@example.com"
-         />
-       </div>
 
-       <div>
-         <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-           Password
-         </label>
-         <input
-           id="password"
-           type="password"
-           required
-           value={password}
-           onChange={(e) => setPassword(e.target.value)}
-           className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-           placeholder="••••••••"
-         />
-       </div>
-     </div>
+  return (
+    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="you@example.com"
+          />
+        </div>
 
-     <button
-       type="submit"
-       disabled={isLoading}
-       className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-         isLoading ? 'opacity-50 cursor-not-allowed' : ''
-       }`}
-     >
-       {isLoading ? 'Signing in...' : 'Sign in'}
-     </button>
-   </form>
- );
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="••••••••"
+          />
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+      >
+        {isLoading ? 'Signing in...' : 'Sign in'}
+      </button>
+    </form>
+  );
 }

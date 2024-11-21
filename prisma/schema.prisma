@@ -8,18 +8,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model UserActivity {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String
-  metadata  Json?    @default("{}")
-  ipAddress String?
-  userAgent String?
-  sessionId String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
-
 model User {
   id           String         @id @default(cuid())
   email        String         @unique
@@ -31,6 +19,18 @@ model User {
   updatedAt    DateTime       @updatedAt
 }
 
+model UserActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  metadata  Json?    @default("{}")
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade) // Add `onDelete: Cascade`
+}
+
 model Task {
   id          String    @id @default(cuid())
   title       String
@@ -39,10 +39,11 @@ model Task {
   priority    Priority  @default(MEDIUM)
   dueDate     DateTime?
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade) // Add `onDelete: Cascade`
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
 
 enum Status {
   PENDING
