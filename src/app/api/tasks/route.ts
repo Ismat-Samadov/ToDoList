@@ -1,4 +1,4 @@
-// src/app/api/tasks/route.ts	
+// src/app/api/tasks/route.ts
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -18,12 +18,12 @@ export async function POST(request: Request) {
     const task = await prisma.task.create({
       data: {
         ...body,
-        userId: session.user.id, // Session user `id` should already be a string from JWT
+        userId: session.user.id,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
+        isDeleted: false
       },
     });
 
-    // Log task creation activity
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_CREATE',
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
         title: task.title,
         dueDate: task.dueDate,
       },
-      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1', // Extract IP from headers or fallback
-      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable', // Extract User-Agent
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
     });
 
     return NextResponse.json(task);
@@ -56,19 +56,21 @@ export async function GET(request: Request) {
 
   try {
     const tasks = await prisma.task.findMany({
-      where: { userId: session.user.id }, // Session user `id` should already be a string from JWT
+      where: { 
+        userId: session.user.id,
+        isDeleted: false
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Log task fetch activity
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_FETCH',
       metadata: {
         totalTasksFetched: tasks.length,
       },
-      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1', // Extract IP from headers or fallback
-      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable', // Extract User-Agent
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
     });
 
     return NextResponse.json(tasks);

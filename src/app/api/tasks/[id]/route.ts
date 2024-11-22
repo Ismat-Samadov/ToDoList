@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
-import { logUserActivity } from '@/lib/logging'; // Import logging function
+import { logUserActivity } from '@/lib/logging';
 
 export async function PATCH(
   request: Request,
@@ -17,11 +17,14 @@ export async function PATCH(
   try {
     const body = await request.json();
     const task = await prisma.task.update({
-      where: { id: params.id },
+      where: { 
+        id: params.id,
+        userId: session.user.id,
+        isDeleted: false
+      },
       data: body,
     });
 
-    // Log the task update activity
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_UPDATE',
@@ -29,8 +32,8 @@ export async function PATCH(
         taskId: params.id,
         updates: body,
       },
-      ipAddress: '127.0.0.1', // Placeholder, replace with actual logic
-      userAgent: 'User-Agent Unavailable', // Replace with req.headers['user-agent'] if available
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
     });
 
     return NextResponse.json(task);
@@ -53,20 +56,27 @@ export async function DELETE(
   }
 
   try {
-    const task = await prisma.task.delete({
-      where: { id: params.id },
+    const task = await prisma.task.update({
+      where: { 
+        id: params.id,
+        userId: session.user.id,
+        isDeleted: false
+      },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
     });
 
-    // Log the task deletion activity
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_DELETE',
       metadata: {
         taskId: params.id,
-        taskTitle: task.title, // Assuming `title` exists on the task model
+        taskTitle: task.title,
       },
-      ipAddress: '127.0.0.1', // Placeholder, replace with actual logic
-      userAgent: 'User-Agent Unavailable', // Replace with req.headers['user-agent'] if available
+      ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+      userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
     });
 
     return new NextResponse(null, { status: 204 });
@@ -78,3 +88,4 @@ export async function DELETE(
     );
   }
 }
+

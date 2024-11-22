@@ -8,40 +8,45 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Task {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      String      @default("PENDING")
+  priority    String      @default("MEDIUM")
+  dueDate     DateTime?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?   // Add this field for soft delete
+  isDeleted   Boolean     @default(false) // Add this field for quick filtering
+}
+
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  name         String?
-  password     String
-  tasks        Task[]
-  activities   UserActivity[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            String         @id @default(cuid())
+  name          String?
+  email         String        @unique
+  password      String
+  tasks         Task[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?     // Add this field for soft delete
+  isDeleted     Boolean       @default(false) // Add this field for quick filtering
+  UserActivity  UserActivity[]
 }
 
 model UserActivity {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String
-  metadata  Json?    @default("{}")
-  ipAddress String?
-  userAgent String?
-  sessionId String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  status      Status    @default(PENDING)
-  priority    Priority  @default(MEDIUM)
-  dueDate     DateTime?
+  id          String      @id @default(cuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  user        User        @relation(fields: [userId], references: [id])
+  action      String
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+  deletedAt   DateTime?   // Add this field for soft delete
+  isDeleted   Boolean     @default(false) // Add this field for quick filtering
 }
 
 enum Status {
