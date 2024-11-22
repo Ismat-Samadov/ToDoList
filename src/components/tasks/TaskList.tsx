@@ -46,10 +46,19 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
 
   const updateTaskStatus = async (id: string, status: string) => {
     if (!session?.user?.id) {
-      console.error('No session user found. Unable to update task status.');
       toast.error('You must be logged in to update tasks');
       return;
     }
+
+    // Optimistic update
+    const oldTask = tasks.find(t => t.id === id);
+    const oldStatus = oldTask?.status;
+    
+    setTasks(currentTasks =>
+      currentTasks.map(task =>
+        task.id === id ? { ...task, status } : task
+      )
+    );
 
     try {
       const res = await fetch(`/api/tasks/${id}`, {
@@ -60,10 +69,8 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
 
       if (!res.ok) throw new Error('Failed to update task');
 
-      const oldStatus = tasks.find((t) => t.id === id)?.status;
-
-      // Log the status change activity
-      await logUserActivity({
+      // Log activity after successful update
+      logUserActivity({
         userId: session.user.id,
         action: 'STATUS_CHANGE',
         metadata: {
@@ -72,21 +79,34 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
           newStatus: status,
           timestamp: new Date().toISOString(),
         },
-      });
+      }).catch(console.error); // Handle logging errors separately
 
       toast.success('Task status updated');
-      fetchTasks();
     } catch (error) {
+      // Revert optimistic update on error
+      setTasks(currentTasks =>
+        currentTasks.map(task =>
+          task.id === id ? { ...task, status: oldStatus } : task
+        )
+      );
       console.error('Error updating task status:', error);
       toast.error('Failed to update task');
     }
   };
 
   const deleteTask = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task?') || !session?.user?.id) {
+    if (!confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+
+    if (!session?.user?.id) {
       toast.error('You must be logged in to delete tasks');
       return;
     }
+
+    // Optimistic update
+    const taskToDelete = tasks.find(t => t.id === id);
+    setTasks(currentTasks => currentTasks.filter(task => task.id !== id));
 
     try {
       const res = await fetch(`/api/tasks/${id}`, {
@@ -95,19 +115,23 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
 
       if (!res.ok) throw new Error('Failed to delete task');
 
-      // Log the task deletion activity
-      await logUserActivity({
+      // Log activity after successful deletion
+      logUserActivity({
         userId: session.user.id,
         action: 'TASK_DELETE',
         metadata: {
           taskId: id,
+          taskTitle: taskToDelete?.title,
           timestamp: new Date().toISOString(),
         },
-      });
+      }).catch(console.error); // Handle logging errors separately
 
       toast.success('Task deleted');
-      fetchTasks();
     } catch (error) {
+      // Revert optimistic update on error
+      if (taskToDelete) {
+        setTasks(currentTasks => [...currentTasks, taskToDelete]);
+      }
       console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
     }
