@@ -19,9 +19,12 @@ interface TaskListProps {
   refreshTrigger: number;
 }
 
+// Define the status type to match your Prisma schema
+type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+
 export default function TaskList({ refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | TaskStatus>('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession() as { data: CustomSession | null };
 
@@ -44,15 +47,17 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     }
   };
 
-  const updateTaskStatus = async (id: string, status: string) => {
+  const updateTaskStatus = async (id: string, status: TaskStatus) => {
     if (!session?.user?.id) {
       toast.error('You must be logged in to update tasks');
       return;
     }
 
-    // Optimistic update
+    // Optimistic update with type safety
     const oldTask = tasks.find(t => t.id === id);
-    const oldStatus = oldTask?.status;
+    if (!oldTask) return;
+
+    const oldStatus = oldTask.status as TaskStatus;
     
     setTasks(currentTasks =>
       currentTasks.map(task =>
@@ -79,7 +84,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
           newStatus: status,
           timestamp: new Date().toISOString(),
         },
-      }).catch(console.error); // Handle logging errors separately
+      }).catch(console.error);
 
       toast.success('Task status updated');
     } catch (error) {
@@ -104,8 +109,11 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
       return;
     }
 
-    // Optimistic update
+    // Find the task before deleting for potential rollback
     const taskToDelete = tasks.find(t => t.id === id);
+    if (!taskToDelete) return;
+
+    // Optimistic update
     setTasks(currentTasks => currentTasks.filter(task => task.id !== id));
 
     try {
@@ -121,23 +129,23 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
         action: 'TASK_DELETE',
         metadata: {
           taskId: id,
-          taskTitle: taskToDelete?.title,
+          taskTitle: taskToDelete.title,
           timestamp: new Date().toISOString(),
         },
-      }).catch(console.error); // Handle logging errors separately
+      }).catch(console.error);
 
       toast.success('Task deleted');
     } catch (error) {
       // Revert optimistic update on error
-      if (taskToDelete) {
-        setTasks(currentTasks => [...currentTasks, taskToDelete]);
-      }
+      setTasks(currentTasks => [...currentTasks, taskToDelete]);
       console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
     }
   };
 
-  const filteredTasks = tasks.filter((task) => (filter === 'ALL' ? true : task.status === filter));
+  const filteredTasks = tasks.filter((task) => 
+    filter === 'ALL' ? true : task.status === filter
+  );
 
   return (
     <div className="space-y-4">
@@ -189,7 +197,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
               <div className="flex justify-between items-center mt-4">
                 <select
                   value={task.status}
-                  onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                  onChange={(e) => updateTaskStatus(task.id, e.target.value as TaskStatus)}
                   className="px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="PENDING">Pending</option>
