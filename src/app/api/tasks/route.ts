@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
-import { logUserActivity } from '@/lib/logging';
+import { logUserActivity, logTaskEvent } from '@/lib/logging';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -24,6 +24,18 @@ export async function POST(request: Request) {
       },
     });
 
+    // Log task creation event
+    await logTaskEvent({
+      taskId: task.id,
+      type: 'TASK_CREATED',
+      newValue: JSON.stringify({
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate
+      })
+    });
+
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_CREATE',
@@ -31,6 +43,8 @@ export async function POST(request: Request) {
         taskId: task.id,
         title: task.title,
         dueDate: task.dueDate,
+        status: task.status,
+        priority: task.priority
       },
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
@@ -63,11 +77,21 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Calculate task statistics
+    const taskStats = {
+      total: tasks.length,
+      completed: tasks.filter(t => t.status === 'COMPLETED').length,
+      pending: tasks.filter(t => t.status === 'PENDING').length,
+      inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+      highPriority: tasks.filter(t => t.priority === 'HIGH').length
+    };
+
     await logUserActivity({
       userId: session.user.id,
       action: 'TASK_FETCH',
       metadata: {
-        totalTasksFetched: tasks.length,
+        taskStats,
+        timestamp: new Date().toISOString()
       },
       ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
       userAgent: request.headers.get('user-agent') || 'User-Agent Unavailable',
