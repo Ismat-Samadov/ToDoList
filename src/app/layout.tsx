@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'MyFrog.me - Task Management Made Simple',
   description: 'Organize your tasks efficiently with MyFrog.me',
   viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#1F2937', // matches bg-gray-900
+  themeColor: '#1F2937',
 };
 
 export default function RootLayout({
@@ -60,8 +60,11 @@ export default function RootLayout({
                   background: '#374151',
                   color: '#fff',
                 },
-                role: 'alert',
-                ariaLive: 'polite',
+                className: 'toast-message',
+                duration: 4000,
+              }}
+              containerStyle={{
+                top: 64,
               }}
             />
           </div>
