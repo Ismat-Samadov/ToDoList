@@ -13,23 +13,50 @@ export default function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'loading') return; // Wait for session to load
+    // Initial session check
+    if (status === 'loading') return;
+
     if (!session?.user) {
       toast.error('You must be logged in to access the dashboard.');
-      router.push('/auth/signin');
+      router.replace('/auth/signin');
+      return;
     }
+
+    setIsInitialLoading(false);
   }, [session, status, router]);
+
+  // Monitor session status for changes
+  useEffect(() => {
+    const checkSession = async () => {
+      if (status === 'unauthenticated') {
+        toast.error('Session expired. Please sign in again.');
+        router.replace('/auth/signin');
+      }
+    };
+
+    checkSession();
+  }, [status, router]);
 
   const handleTaskAdded = () => {
     setRefreshTrigger((prev) => prev + 1);
+    toast.success('Task added successfully!');
   };
 
-  if (status === 'loading' || !session?.user) {
+  // Show loading state
+  if (isInitialLoading || status === 'loading' || !session?.user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-        Loading...
+      <div 
+        className="min-h-screen flex items-center justify-center bg-gray-900"
+        role="status"
+        aria-label="Loading dashboard"
+      >
+        <div className="text-center text-white">
+          <p className="text-lg">Loading...</p>
+          <p className="text-sm text-gray-400 mt-2">Please wait while we set up your dashboard</p>
+        </div>
       </div>
     );
   }
@@ -37,17 +64,41 @@ export default function DashboardContent() {
   return (
     <div className="min-h-screen bg-gray-900">
       <Navigation />
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-white">Your Tasks</h1>
+      <main 
+        className="container mx-auto px-4 py-8"
+        role="main"
+        aria-label="Dashboard content"
+      >
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white">
+            Welcome, {session.user.name || 'User'}
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Manage your tasks efficiently
+          </p>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
-            <TaskForm onTaskAdded={handleTaskAdded} />
-          </div>
-          <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
-            <TaskList refreshTrigger={refreshTrigger} />
-          </div>
+          <section 
+            className="bg-gray-800 rounded-xl p-6 shadow-lg"
+            aria-label="Create new task"
+          >
+            <TaskForm 
+              onTaskAdded={handleTaskAdded} 
+            />
+          </section>
+
+          <section 
+            className="bg-gray-800 rounded-xl p-6 shadow-lg"
+            aria-label="Your tasks"
+          >
+            <TaskList 
+              refreshTrigger={refreshTrigger}
+            />
+          </section>
         </div>
       </main>
     </div>
   );
 }
+

@@ -6,6 +6,27 @@ import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
 import { logUserActivity } from '@/lib/logging';
 
+// Rate limiting implementation
+const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
+
+const checkRateLimit = (identifier: string): boolean => {
+  const now = Date.now();
+  const limit = 5; // attempts
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+
+  const userAttempts = rateLimitMap.get(identifier) || { count: 0, timestamp: now };
+
+  if (now - userAttempts.timestamp > windowMs) {
+    userAttempts.count = 1;
+    userAttempts.timestamp = now;
+  } else {
+    userAttempts.count += 1;
+  }
+
+  rateLimitMap.set(identifier, userAttempts);
+  return userAttempts.count <= limit;
+};
+
 export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
@@ -14,18 +35,37 @@ export const authOptions: AuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            return null;
+            throw new Error('Missing credentials');
+          }
+
+          // Rate limiting check
+          const headersList = headers();
+          const clientIp = headersList.get('x-forwarded-for') || 
+                          headersList.get('x-real-ip') || 
+                          '127.0.0.1';
+
+          if (!checkRateLimit(`${clientIp}:${credentials.email}`)) {
+            throw new Error('Too many login attempts');
           }
 
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { 
+              email: credentials.email.toLowerCase().trim()
+            },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              name: true,
+              isDeleted: true
+            }
           });
 
-          if (!user || !user.password) {
-            return null;
+          if (!user || user.isDeleted || !user.password) {
+            throw new Error('Invalid credentials');
           }
 
           const isPasswordValid = await bcrypt.compare(
@@ -34,10 +74,10 @@ export const authOptions: AuthOptions = {
           );
 
           if (!isPasswordValid) {
-            return null;
+            throw new Error('Invalid credentials');
           }
 
-          const headersList = headers();
+          // Log successful login
           await logUserActivity({
             userId: user.id,
             action: 'LOGIN',
@@ -46,9 +86,9 @@ export const authOptions: AuthOptions = {
               loginMethod: 'credentials',
               timestamp: new Date().toISOString()
             },
-            ipAddress: headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '127.0.0.1',
+            ipAddress: clientIp,
             userAgent: headersList.get('user-agent') || 'Unknown'
-          });
+          }).catch(console.error); // Non-blocking error handling
 
           return {
             id: user.id,
@@ -57,17 +97,21 @@ export const authOptions: AuthOptions = {
           };
         } catch (error) {
           console.error('Authorization error:', error);
-          return null;
+          throw error; // Propagate error for proper handling
         }
       }
     })
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60
+    maxAge: 24 * 60 * 60, // 24 hours
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  jwt: {
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -85,7 +129,9 @@ export const authOptions: AuthOptions = {
     }
   },
   pages: {
-    signIn: '/auth/signin'
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
