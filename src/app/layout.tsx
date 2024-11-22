@@ -1,15 +1,20 @@
 // src/app/layout.tsx
 import { Metadata } from 'next';
+import { Viewport } from 'next';
 import Providers from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 import Script from 'next/script';
 import './globals.css';
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#1F2937',
+};
+
 export const metadata: Metadata = {
   title: 'MyFrog.me - Task Management Made Simple',
   description: 'Organize your tasks efficiently with MyFrog.me',
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#1F2937',
 };
 
 export default function RootLayout({
