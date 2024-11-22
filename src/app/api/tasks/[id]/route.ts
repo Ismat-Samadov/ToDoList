@@ -3,9 +3,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
-import { logUserActivity } from '@/lib/logging';
+import { logUserActivity, logTaskEvent } from '@/lib/logging';
 
-// Helper function to get client info
 function getClientInfo(request: Request) {
   return {
     ipAddress: request.headers.get('x-forwarded-for') || 
@@ -15,7 +14,6 @@ function getClientInfo(request: Request) {
   };
 }
 
-// Helper function to verify task ownership
 async function verifyTaskAccess(taskId: string, userId: string) {
   const task = await prisma.task.findFirst({
     where: {
@@ -38,7 +36,6 @@ export async function PATCH(
   }
 
   try {
-    // Verify task access
     const hasAccess = await verifyTaskAccess(params.id, session.user.id);
     if (!hasAccess) {
       return NextResponse.json(
@@ -49,6 +46,11 @@ export async function PATCH(
 
     const body = await request.json();
     
+    // Get original task data for comparison
+    const originalTask = await prisma.task.findUnique({
+      where: { id: params.id }
+    });
+
     // Update task
     const task = await prisma.task.update({
       where: { 
@@ -62,11 +64,29 @@ export async function PATCH(
       },
     });
 
-    // Get client info
+    // Log status change
+    if (body.status && body.status !== originalTask?.status) {
+      await logTaskEvent({
+        taskId: params.id,
+        type: 'STATUS_CHANGED',
+        oldValue: originalTask?.status,
+        newValue: body.status
+      });
+    }
+
+    // Log priority change
+    if (body.priority && body.priority !== originalTask?.priority) {
+      await logTaskEvent({
+        taskId: params.id,
+        type: 'PRIORITY_CHANGED',
+        oldValue: originalTask?.priority,
+        newValue: body.priority
+      });
+    }
+
     const { ipAddress, userAgent } = getClientInfo(request);
 
-    // Log activity asynchronously
-    logUserActivity({
+    await logUserActivity({
       userId: session.user.id,
       action: 'TASK_UPDATE',
       metadata: {
@@ -76,16 +96,12 @@ export async function PATCH(
       },
       ipAddress,
       userAgent,
-    }).catch(error => {
-      // Log but don't fail the request
-      console.error('Error logging activity:', error);
     });
 
     return NextResponse.json(task);
   } catch (error) {
     console.error('Error updating task:', error);
     
-    // More specific error handling
     if ((error as any).code === 'P2025') {
       return NextResponse.json(
         { message: 'Task not found' },
@@ -110,7 +126,6 @@ export async function DELETE(
   }
 
   try {
-    // Verify task access
     const hasAccess = await verifyTaskAccess(params.id, session.user.id);
     if (!hasAccess) {
       return NextResponse.json(
@@ -119,7 +134,6 @@ export async function DELETE(
       );
     }
 
-    // Perform soft delete
     const task = await prisma.task.update({
       where: { 
         id: params.id,
@@ -136,11 +150,16 @@ export async function DELETE(
       }
     });
 
-    // Get client info
+    await logTaskEvent({
+      taskId: params.id,
+      type: 'TASK_DELETED',
+      oldValue: 'active',
+      newValue: 'deleted'
+    });
+
     const { ipAddress, userAgent } = getClientInfo(request);
 
-    // Log activity asynchronously
-    logUserActivity({
+    await logUserActivity({
       userId: session.user.id,
       action: 'TASK_DELETE',
       metadata: {
@@ -150,16 +169,12 @@ export async function DELETE(
       },
       ipAddress,
       userAgent,
-    }).catch(error => {
-      // Log but don't fail the request
-      console.error('Error logging activity:', error);
     });
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting task:', error);
     
-    // More specific error handling
     if ((error as any).code === 'P2025') {
       return NextResponse.json(
         { message: 'Task not found' },

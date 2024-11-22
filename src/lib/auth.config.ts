@@ -6,13 +6,12 @@ import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
 import { logUserActivity } from '@/lib/logging';
 
-// Rate limiting implementation
 const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
 
 const checkRateLimit = (identifier: string): boolean => {
   const now = Date.now();
-  const limit = 5; // attempts
-  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const limit = 5;
+  const windowMs = 15 * 60 * 1000;
 
   const userAttempts = rateLimitMap.get(identifier) || { count: 0, timestamp: now };
 
@@ -41,7 +40,6 @@ export const authOptions: AuthOptions = {
             throw new Error('Missing credentials');
           }
 
-          // Rate limiting check
           const headersList = headers();
           const clientIp = headersList.get('x-forwarded-for') || 
                           headersList.get('x-real-ip') || 
@@ -77,7 +75,15 @@ export const authOptions: AuthOptions = {
             throw new Error('Invalid credentials');
           }
 
-          // Log successful login
+          // Update login metrics
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              lastLoginAt: new Date(),
+              loginCount: { increment: 1 }
+            }
+          });
+
           await logUserActivity({
             userId: user.id,
             action: 'LOGIN',
@@ -88,7 +94,7 @@ export const authOptions: AuthOptions = {
             },
             ipAddress: clientIp,
             userAgent: headersList.get('user-agent') || 'Unknown'
-          }).catch(console.error); // Non-blocking error handling
+          }).catch(console.error);
 
           return {
             id: user.id,
@@ -97,18 +103,18 @@ export const authOptions: AuthOptions = {
           };
         } catch (error) {
           console.error('Authorization error:', error);
-          throw error; // Propagate error for proper handling
+          throw error;
         }
       }
     })
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
-    updateAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
   jwt: {
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user, account }) {
