@@ -47,7 +47,6 @@ export default function DashboardContent() {
     toast.success('Task added successfully!');
   };
 
-  // Show loading state
   if (isInitialLoading || status === 'loading' || !session?.user) {
     return (
       <div 
@@ -67,12 +66,22 @@ export default function DashboardContent() {
     <div className="min-h-screen bg-gray-900">
       <Navigation />
       <main 
-        className="container mx-auto px-4 py-8 pb-20 md:pb-8"
+        className="container mx-auto px-4 pb-20 md:pb-8 md:pt-24" // Only add pt-24 for md screens
         role="main"
         aria-label="Dashboard content"
       >
-        <div className="mb-8">
+        <div className="mb-8 hidden md:block"> {/* Only show on desktop */}
           <h1 className="text-3xl font-bold text-white">
+            Welcome, {session.user.name || 'User'}
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Manage your tasks efficiently
+          </p>
+        </div>
+
+        {/* Mobile Welcome - Only show on mobile */}
+        <div className="mb-8 md:hidden">
+          <h1 className="text-2xl font-bold text-white">
             Welcome, {session.user.name || 'User'}
           </h1>
           <p className="text-gray-400 mt-2">
