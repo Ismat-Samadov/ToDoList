@@ -14,6 +14,7 @@ export default function DashboardContent() {
   const router = useRouter();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [showMobileForm, setShowMobileForm] = useState(false);
 
   useEffect(() => {
     // Initial session check
@@ -42,6 +43,7 @@ export default function DashboardContent() {
 
   const handleTaskAdded = () => {
     setRefreshTrigger((prev) => prev + 1);
+    setShowMobileForm(false);
     toast.success('Task added successfully!');
   };
 
@@ -65,7 +67,7 @@ export default function DashboardContent() {
     <div className="min-h-screen bg-gray-900">
       <Navigation />
       <main 
-        className="container mx-auto px-4 py-8"
+        className="container mx-auto px-4 py-8 pb-20 md:pb-8"
         role="main"
         aria-label="Dashboard content"
       >
@@ -78,9 +80,62 @@ export default function DashboardContent() {
           </p>
         </div>
 
+        {/* Mobile Add Task Button */}
+        <button
+          onClick={() => setShowMobileForm(true)}
+          className="fixed right-4 bottom-20 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-50 md:hidden"
+          aria-label="Add new task"
+        >
+          <svg
+            className="w-6 h-6 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+        </button>
+
+        {/* Mobile Form Modal */}
+        {showMobileForm && (
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 md:hidden">
+            <div className="h-full overflow-y-auto px-4 py-16">
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Add New Task</h2>
+                  <button
+                    onClick={() => setShowMobileForm(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <TaskForm onTaskAdded={handleTaskAdded} />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid md:grid-cols-2 gap-8">
           <section 
-            className="bg-gray-800 rounded-xl p-6 shadow-lg"
+            className="hidden md:block bg-gray-800 rounded-xl p-6 shadow-lg"
             aria-label="Create new task"
           >
             <TaskForm 
@@ -89,7 +144,7 @@ export default function DashboardContent() {
           </section>
 
           <section 
-            className="bg-gray-800 rounded-xl p-6 shadow-lg"
+            className="bg-gray-800 rounded-xl p-6 shadow-lg md:col-span-1"
             aria-label="Your tasks"
           >
             <TaskList 
@@ -101,4 +156,3 @@ export default function DashboardContent() {
     </div>
   );
 }
-

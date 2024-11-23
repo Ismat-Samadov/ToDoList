@@ -99,9 +99,10 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
           required
           disabled={isSubmitting}
+          placeholder="Enter task title"
         />
       </div>
 
@@ -110,9 +111,10 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
           rows={3}
           disabled={isSubmitting}
+          placeholder="Enter task description"
         />
       </div>
 
@@ -121,7 +123,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2 appearance-none"
           disabled={isSubmitting}
         >
           <option value="LOW">Low</option>
@@ -138,13 +140,13 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
             value={dueDate}
             min={today}
             onChange={(e) => setDueDate(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
             disabled={isSubmitting}
           />
           <button
             type="button"
             onClick={() => setDueDate(today)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+            className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors text-base md:text-sm md:py-2"
             disabled={isSubmitting}
           >
             Today
@@ -154,7 +156,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
       <button
         type="submit"
-        className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors ${
+        className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors text-base font-medium md:text-sm md:py-2 ${
           isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
         }`}
         disabled={isSubmitting}
