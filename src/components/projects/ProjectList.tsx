@@ -19,6 +19,7 @@ interface ProjectListProps {
   onProjectSelect: Dispatch<SetStateAction<ProjectWithCount | null>>;
   onProjectUpdated: () => Promise<void>;
 }
+
 export default function ProjectList({
   projects,
   selectedProject,
@@ -36,7 +37,6 @@ export default function ProjectList({
       });
 
       if (!response.ok) throw new Error('Failed to create project');
-      
       await onProjectUpdated();
       setShowCreateModal(false);
       toast.success('Project created successfully');
@@ -46,16 +46,31 @@ export default function ProjectList({
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+  const handleUpdateProject = async (projectId: string, data: { name: string; description?: string }) => {
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: projectId, ...data }),
+      });
 
+      if (!response.ok) throw new Error('Failed to update project');
+      await onProjectUpdated();
+      toast.success('Project updated successfully');
+    } catch (error) {
+      console.error('Error updating project:', error);
+      toast.error('Failed to update project');
+      throw error;
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
     try {
       const response = await fetch(`/api/projects?id=${projectId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete project');
-
       await onProjectUpdated();
       toast.success('Project deleted successfully');
     } catch (error) {
@@ -89,6 +104,7 @@ export default function ProjectList({
               isSelected={selectedProject?.id === project.id}
               onSelect={() => onProjectSelect(project)}
               onDelete={handleDeleteProject}
+              onUpdate={handleUpdateProject}
             />
           ))}
         </div>
