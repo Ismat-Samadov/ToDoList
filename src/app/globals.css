@@ -3,16 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --header-height: 64px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #1a1f25;
+  --card-background: #2a3138;
+  --container-background: #1e242c;
+  --foreground: #ffffff;
+  --text-secondary: #94a3b8;
+  --header-height: 56px;
 }
 
 /* Reset and base styles */
@@ -30,7 +26,7 @@ body {
   min-height: 100%;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
@@ -62,6 +58,41 @@ button {
     padding: 0.75rem;
   }
 
+  /* Task card styles */
+  .task-card {
+    background-color: var(--card-background);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .task-status {
+    background-color: var(--container-background);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    color: var(--foreground);
+    width: 75%;
+  }
+
+  .priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: white;
+  }
+
+  .priority-badge-medium {
+    background-color: #8B4513;
+  }
+
+  .priority-badge-low {
+    background-color: #006400;
+  }
+
+  .priority-badge-high {
+    background-color: #991B1B;
+  }
+
   /* Better button interaction */
   button,
   [role="button"],
@@ -82,13 +113,21 @@ button {
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
   }
 
   /* Main content padding for fixed header */
   main {
     padding-top: var(--header-height);
+  }
+
+  /* Filter button */
+  .filter-button {
+    background-color: var(--card-background);
+    border-radius: 9999px;
+    padding: 0.5rem 1.5rem;
+    color: var(--text-secondary);
   }
 }
 
@@ -98,10 +137,11 @@ textarea,
 select {
   appearance: none;
   -webkit-appearance: none;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   width: 100%;
-  background-color: var(--background);
+  background-color: var(--container-background);
   color: var(--foreground);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
 }
 
@@ -110,18 +150,8 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-}
-
-/* Dark mode form handling */
-@media (prefers-color-scheme: dark) {
-  input:-webkit-autofill,
-  textarea:-webkit-autofill,
-  select:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 30px rgb(17, 24, 39) inset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    caret-color: #ffffff;
-  }
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 /* Selection color */
@@ -152,19 +182,43 @@ textarea:focus {
   }
 }
 
-/* Fix for iOS input zoom */
-@media screen and (-webkit-min-device-pixel-ratio: 0) {
-  select,
-  textarea,
-  input {
-    font-size: 16px !important;
-  }
-}
-
 /* Better mobile button active states */
 button:active,
 [role="button"]:active {
   transform: scale(0.98);
+}
+
+/* Floating action button */
+.fab {
+  position: fixed;
+  right: 1rem;
+  bottom: 5rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 50;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  inset: 0;
+  background-color: var(--background);
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background-color: var(--container-background);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 1rem;
 }
 
 /* Momentum scrolling for iOS */

@@ -8,6 +8,7 @@ import TaskList from '@/components/tasks/TaskList';
 import TaskForm from '@/components/tasks/TaskForm';
 import Navigation from '@/components/Navigation';
 import { toast } from 'react-hot-toast';
+import AddTaskFAB from '@/components/tasks/AddTaskFAB';
 
 export default function DashboardContent() {
   const { data: session, status } = useSession();
@@ -17,7 +18,6 @@ export default function DashboardContent() {
   const [showMobileForm, setShowMobileForm] = useState(false);
 
   useEffect(() => {
-    // Initial session check
     if (status === 'loading') return;
 
     if (!session?.user) {
@@ -29,16 +29,11 @@ export default function DashboardContent() {
     setIsInitialLoading(false);
   }, [session, status, router]);
 
-  // Monitor session status for changes
   useEffect(() => {
-    const checkSession = async () => {
-      if (status === 'unauthenticated') {
-        toast.error('Session expired. Please sign in again.');
-        router.replace('/auth/signin');
-      }
-    };
-
-    checkSession();
+    if (status === 'unauthenticated') {
+      toast.error('Session expired. Please sign in again.');
+      router.replace('/auth/signin');
+    }
   }, [status, router]);
 
   const handleTaskAdded = () => {
@@ -50,7 +45,7 @@ export default function DashboardContent() {
   if (isInitialLoading || status === 'loading' || !session?.user) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center bg-gray-900"
+        className="min-h-screen flex items-center justify-center bg-[#1a1f25]"
         role="status"
         aria-label="Loading dashboard"
       >
@@ -63,97 +58,21 @@ export default function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-[#1a1f25]">
       <Navigation />
-      <main 
-        className="container mx-auto px-4 pb-20 md:pb-8 md:pt-24" // Only add pt-24 for md screens
-        role="main"
-        aria-label="Dashboard content"
-      >
-        <div className="mb-8 hidden md:block"> {/* Only show on desktop */}
-          <h1 className="text-3xl font-bold text-white">
-            Welcome, {session.user.name || 'User'}
-          </h1>
-          <p className="text-gray-400 mt-2">
+      
+      <main className="pt-16">
+        {/* Subtitle */}
+        <div className="px-4 pb-2">
+          <p className="text-xl text-gray-400">
             Manage your tasks efficiently
           </p>
         </div>
 
-        {/* Mobile Welcome - Only show on mobile */}
-        <div className="mb-8 md:hidden">
-          <h1 className="text-2xl font-bold text-white">
-            Welcome, {session.user.name || 'User'}
-          </h1>
-          <p className="text-gray-400 mt-2">
-            Manage your tasks efficiently
-          </p>
-        </div>
-
-        {/* Mobile Add Task Button */}
-        <button
-          onClick={() => setShowMobileForm(true)}
-          className="fixed right-4 bottom-20 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-50 md:hidden"
-          aria-label="Add new task"
-        >
-          <svg
-            className="w-6 h-6 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </button>
-
-        {/* Mobile Form Modal */}
-        {showMobileForm && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 md:hidden">
-            <div className="h-full overflow-y-auto px-4 py-16">
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-white">Add New Task</h2>
-                  <button
-                    onClick={() => setShowMobileForm(false)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <TaskForm onTaskAdded={handleTaskAdded} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-8">
+        {/* Task List Container */}
+        <div className="px-4">
           <section 
-            className="hidden md:block bg-gray-800 rounded-xl p-6 shadow-lg"
-            aria-label="Create new task"
-          >
-            <TaskForm 
-              onTaskAdded={handleTaskAdded} 
-            />
-          </section>
-
-          <section 
-            className="bg-gray-800 rounded-xl p-6 shadow-lg md:col-span-1"
+            className="bg-[#1e242c] rounded-2xl p-4"
             aria-label="Your tasks"
           >
             <TaskList 
@@ -161,6 +80,48 @@ export default function DashboardContent() {
             />
           </section>
         </div>
+
+        {/* Add Task FAB */}
+        <AddTaskFAB onClick={() => setShowMobileForm(true)} />
+
+        {/* Task Form Modal */}
+        {showMobileForm && (
+          <div 
+            className="fixed inset-0 bg-[#1a1f25] z-50 animate-in fade-in slide-in-from-bottom"
+            aria-modal="true"
+            role="dialog"
+          >
+            <nav className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Add New Task</h2>
+              <button
+                onClick={() => setShowMobileForm(false)}
+                className="p-2 text-gray-400"
+                aria-label="Close modal"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </nav>
+            
+            <div className="p-4 h-[calc(100vh-64px)] overflow-y-auto">
+              <TaskForm onTaskAdded={handleTaskAdded} />
+            </div>
+          </div>
+        )}
+
+        {/* Safe Area Spacing */}
+        <div className="h-24" />
       </main>
     </div>
   );

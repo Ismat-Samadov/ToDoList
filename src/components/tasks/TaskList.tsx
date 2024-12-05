@@ -140,78 +140,62 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
   );
 
   return (
-    <div className="space-y-4" role="region" aria-label="Task management">
+    <div className="space-y-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-white" id="task-list-heading">
+        <h2 className="text-2xl font-semibold text-white">
           Task List
         </h2>
-        <div className="flex items-center">
-          <label htmlFor="task-filter" className="sr-only">
-            Filter tasks
-          </label>
-          <select
-            id="task-filter"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="px-3 py-1 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="ALL">All Tasks</option>
-            <option value="PENDING">Pending</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
-        </div>
+        <button
+          className="px-6 py-2 bg-[#2a3138] rounded-full text-gray-300 text-sm"
+          onClick={() => setFilter('ALL')}
+        >
+          All Tasks
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-4" role="status" aria-live="polite">
+        <div className="text-center py-4">
           <p className="text-gray-300">Loading tasks...</p>
         </div>
       ) : (
-        <div className="space-y-4" aria-labelledby="task-list-heading">
+        <div className="space-y-4">
           {filteredTasks.map((task) => (
             <div 
               key={task.id} 
-              className="bg-gray-700 p-4 rounded-lg border border-gray-600"
-              role="article"
+              className="bg-[#2a3138] p-4 rounded-xl"
             >
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-white" id={`task-${task.id}-title`}>
+                <h3 className="text-lg text-white">
                   {task.title}
                 </h3>
                 <span
-                  className={`px-2 py-1 rounded text-sm ${
+                  className={`px-3 py-1 rounded-md text-white ${
                     task.priority === 'HIGH'
-                      ? 'bg-red-900 text-red-100'
+                      ? 'bg-red-800'
                       : task.priority === 'MEDIUM'
-                      ? 'bg-yellow-900 text-yellow-100'
-                      : 'bg-green-900 text-green-100'
+                      ? 'bg-[#8B4513]'
+                      : 'bg-[#006400]'
                   }`}
-                  role="status"
                 >
                   {task.priority}
                 </span>
               </div>
 
-              <p className="text-gray-300 text-sm mb-2" id={`task-${task.id}-description`}>
+              <p className="text-gray-400 mb-2">
                 {task.description}
               </p>
 
               {task.dueDate && (
-                <p className="text-sm text-gray-300 mb-2">
+                <p className="text-gray-400 mb-4">
                   Due: {new Date(task.dueDate).toLocaleDateString()}
                 </p>
               )}
 
-              <div className="flex justify-between items-center mt-4">
-                <label htmlFor={`task-${task.id}-status`} className="sr-only">
-                  Update task status for {task.title}
-                </label>
+              <div className="flex justify-between items-center">
                 <select
-                  id={`task-${task.id}-status`}
                   value={task.status}
                   onChange={(e) => updateTaskStatus(task.id, e.target.value as TaskStatus)}
-                  className="px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-[#1e242c] text-white px-4 py-2 rounded-lg w-3/4"
                 >
                   <option value="PENDING">Pending</option>
                   <option value="IN_PROGRESS">In Progress</option>
@@ -220,8 +204,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
 
                 <button
                   onClick={() => deleteTask(task.id)}
-                  className="text-red-300 hover:text-red-200 text-sm transition-colors"
-                  aria-label={`Delete task: ${task.title}`}
+                  className="text-red-400"
                 >
                   Delete
                 </button>
@@ -230,11 +213,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
           ))}
 
           {!isLoading && filteredTasks.length === 0 && (
-            <p 
-              className="text-gray-300 text-center py-4" 
-              role="status" 
-              aria-live="polite"
-            >
+            <p className="text-gray-400 text-center py-4">
               No tasks found
             </p>
           )}

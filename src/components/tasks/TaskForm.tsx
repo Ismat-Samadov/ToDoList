@@ -6,7 +6,6 @@ import { toast } from 'react-hot-toast';
 import { logUserActivity } from '@/lib/logging';
 import { useSession } from 'next-auth/react';
 
-// Add session type
 interface CustomSession {
   user: {
     id: string;
@@ -25,14 +24,13 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('LOW');
   const [dueDate, setDueDate] = useState(today);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Handle session loading or invalid session state
     if (status === 'loading') {
       toast.error('Session is still loading. Please wait and try again.');
       return;
@@ -60,7 +58,6 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
       const task = await res.json();
 
-      // Log user activity
       try {
         await logUserActivity({
           userId: session.user.id,
@@ -80,7 +77,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
       toast.success('Task created successfully!');
       setTitle('');
       setDescription('');
-      setPriority('MEDIUM');
+      setPriority('LOW');
       setDueDate(today);
       onTaskAdded();
     } catch (error) {
@@ -92,77 +89,97 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
+          className="w-full px-4 py-3 bg-[#1e242c] rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
           required
           disabled={isSubmitting}
-          placeholder="Enter task title"
+          placeholder="Task Title"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
-          rows={3}
+          className="w-full px-4 py-3 bg-[#1e242c] rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 min-h-[100px]"
           disabled={isSubmitting}
-          placeholder="Enter task description"
+          placeholder="Task Description"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Priority</label>
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
-          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2 appearance-none"
-          disabled={isSubmitting}
-        >
-          <option value="LOW">Low</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="HIGH">High</option>
-        </select>
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
+            className="w-full px-4 py-3 bg-[#1e242c] rounded-xl text-white focus:ring-2 focus:ring-blue-500 appearance-none"
+            disabled={isSubmitting}
+          >
+            <option value="LOW">Low Priority</option>
+            <option value="MEDIUM">Medium Priority</option>
+            <option value="HIGH">High Priority</option>
+          </select>
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Due Date</label>
-        <div className="flex gap-2">
+        <div>
           <input
             type="date"
             value={dueDate}
             min={today}
             onChange={(e) => setDueDate(e.target.value)}
-            className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-sm md:px-3 md:py-2"
+            className="w-full px-4 py-3 bg-[#1e242c] rounded-xl text-white focus:ring-2 focus:ring-blue-500"
             disabled={isSubmitting}
           />
-          <button
-            type="button"
-            onClick={() => setDueDate(today)}
-            className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors text-base md:text-sm md:py-2"
-            disabled={isSubmitting}
-          >
-            Today
-          </button>
         </div>
       </div>
 
       <button
         type="submit"
-        className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors text-base font-medium md:text-sm md:py-2 ${
-          isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+        className={`w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium ${
+          isSubmitting ? 'opacity-50' : ''
         }`}
         disabled={isSubmitting}
       >
-        {isSubmitting ? 'Adding Task...' : 'Add Task'}
+        {isSubmitting ? 'Creating Task...' : 'Create Task'}
       </button>
+
+      {/* Quick Date Buttons */}
+      <div className="flex gap-2 overflow-x-auto py-2">
+        <button
+          type="button"
+          onClick={() => setDueDate(today)}
+          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            setDueDate(tomorrow.toISOString().split('T')[0]);
+          }}
+          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
+        >
+          Tomorrow
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            setDueDate(nextWeek.toISOString().split('T')[0]);
+          }}
+          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
+        >
+          Next Week
+        </button>
+      </div>
     </form>
   );
 }
