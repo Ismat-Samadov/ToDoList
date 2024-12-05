@@ -11,9 +11,11 @@ interface TaskListProps {
   refreshTrigger: number;
 }
 
+type TaskFilter = 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+
 export default function TaskList({ refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState<'ALL'>('ALL');
+  const [filter, setFilter] = useState<TaskFilter>('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
 
@@ -80,58 +82,81 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     }
   };
 
+  // Filter tasks based on selected filter
+  const filteredTasks = tasks.filter(task => {
+    if (filter === 'ALL') return true;
+    return task.status === filter;
+  });
+
+  const handleFilterChange = () => {
+    // Cycle through filters
+    const filters: TaskFilter[] = ['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'];
+    const currentIndex = filters.indexOf(filter);
+    const nextIndex = (currentIndex + 1) % filters.length;
+    setFilter(filters[nextIndex]);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-white">Task List</h2>
-        <button className="px-6 py-2 bg-[#2f3641] text-gray-300 rounded-full text-sm">
-          All Tasks
+        <button 
+          onClick={handleFilterChange}
+          className="px-6 py-2 bg-[#2f3641] text-gray-300 rounded-full text-sm"
+        >
+          {filter === 'ALL' ? 'All Tasks' : 
+           filter === 'IN_PROGRESS' ? 'In Progress' : 
+           filter.charAt(0) + filter.slice(1).toLowerCase()}
         </button>
       </div>
 
       <div className="space-y-3">
-        {tasks.map((task) => (
-          <div key={task.id} className="bg-[#2f3641] rounded-2xl p-4">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg text-white font-normal">{task.title}</h3>
-              <span
-                className={`px-3 py-1 rounded-md text-white text-sm ${
-                  task.priority === 'HIGH' ? 'bg-red-800' :
-                  task.priority === 'MEDIUM' ? 'bg-[#8B4513]' :
-                  'bg-[#006400]'
-                }`}
-              >
-                {task.priority}
-              </span>
+        {filteredTasks.length === 0 ? (
+          <p className="text-center text-gray-400 py-4">No tasks found</p>
+        ) : (
+          filteredTasks.map((task) => (
+            <div key={task.id} className="bg-[#2f3641] rounded-2xl p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg text-white font-normal">{task.title}</h3>
+                <span
+                  className={`px-3 py-1 rounded-md text-white text-sm ${
+                    task.priority === 'HIGH' ? 'bg-red-800' :
+                    task.priority === 'MEDIUM' ? 'bg-[#8B4513]' :
+                    'bg-[#006400]'
+                  }`}
+                >
+                  {task.priority}
+                </span>
+              </div>
+
+              <p className="text-gray-400 text-base mb-2">{task.description}</p>
+
+              {task.dueDate && (
+                <p className="text-gray-400 text-base mb-4">
+                  Due: {new Date(task.dueDate).toLocaleDateString()}
+                </p>
+              )}
+
+              <div className="flex justify-between items-center">
+                <select
+                  value={task.status}
+                  onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                  className="bg-[#1e242c] text-white px-4 py-2 rounded-xl w-[80%] text-base"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="text-red-400 text-base"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-
-            <p className="text-gray-400 text-base mb-2">{task.description}</p>
-
-            {task.dueDate && (
-              <p className="text-gray-400 text-base mb-4">
-                Due: {new Date(task.dueDate).toLocaleDateString()}
-              </p>
-            )}
-
-            <div className="flex justify-between items-center">
-              <select
-                value={task.status}
-                onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                className="bg-[#1e242c] text-white px-4 py-2 rounded-xl w-[80%] text-base"
-              >
-                <option value="PENDING">Pending</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-red-400 text-base"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
