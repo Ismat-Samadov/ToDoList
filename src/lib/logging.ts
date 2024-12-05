@@ -65,6 +65,25 @@ interface LogProjectEventParams {
   metadata?: Record<string, any>;
 }
 
+// Client-side activity logging
+export async function logClientActivity(params: LogActivityParams) {
+  try {
+    const response = await fetch('/api/logging', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    
+    if (!response.ok) throw new Error('Failed to log activity');
+    console.log(`User activity logged successfully: ${params.action}`);
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+  }
+}
+
+// Server-side activity logging
 export async function logUserActivity({
   userId,
   action,
@@ -120,7 +139,6 @@ export async function logTaskEvent({
       data: eventData,
     });
 
-    // Log corresponding user activity if userId is provided
     if (userId) {
       await logUserActivity({
         userId,
@@ -148,7 +166,6 @@ export async function logProjectEvent({
   metadata = {},
 }: LogProjectEventParams) {
   try {
-    // Log the project-specific event
     await prisma.userActivity.create({
       data: {
         userId,
@@ -161,15 +178,12 @@ export async function logProjectEvent({
         },
       },
     });
-
     console.log(`Project event logged successfully: ${type}`);
   } catch (error) {
     console.error('Failed to log project event:', error);
   }
 }
 
-// Utility function to format activity for display
-// Update the formatActivityMessage function
 export function formatActivityMessage(
   action: ActivityType,
   metadata?: Record<string, any>

@@ -16,6 +16,7 @@ interface ProjectCardProps {
   onSelect: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: { name: string; description?: string }) => Promise<void>;
+  disabled?: boolean;
 }
 
 export default function ProjectCard({ 

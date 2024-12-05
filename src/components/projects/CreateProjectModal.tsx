@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 interface CreateProjectModalProps {
   onClose: () => void;
   onCreate: (data: { name: string; description?: string }) => Promise<void>;
+  isDisabled?: boolean;
 }
 
 export default function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProps) {

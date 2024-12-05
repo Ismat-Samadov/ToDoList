@@ -6,6 +6,7 @@ import { Task, Status, Priority } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import TaskEditModal from './TaskEditModal';
+import { logClientActivity } from '@/lib/logging';
 
 interface TaskListProps {
   projectId: string;
@@ -32,14 +33,35 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   }, [projectId, refreshTrigger]);
 
   const fetchTasks = async () => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/tasks`);
       if (!res.ok) throw new Error('Failed to fetch tasks');
       const data = await res.json();
       setTasks(data);
+      
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_FETCH',
+        metadata: {
+          projectId,
+          taskCount: data.length,
+          timestamp: new Date().toISOString()
+        }
+      });
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast.error('Failed to fetch tasks');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_FETCH',
+        metadata: {
+          projectId,
+          error: 'Failed to fetch tasks',
+          timestamp: new Date().toISOString()
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -64,16 +86,41 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
       });
       
       if (!res.ok) throw new Error('Failed to update task');
+
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'STATUS_CHANGE',
+        metadata: {
+          taskId,
+          projectId,
+          oldStatus: oldTask.status,
+          newStatus,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       toast.success('Task status updated');
-      
     } catch (error) {
-      setTasks(tasks); // Revert to original state
+      setTasks(tasks);
       toast.error('Failed to update task status');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'STATUS_CHANGE',
+        metadata: {
+          taskId,
+          projectId,
+          error: 'Failed to update status',
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   };
 
   const updateTask = async (taskId: string, updatedData: UpdateTaskData) => {
+    if (!session?.user?.id) return;
+    
     try {
+      const oldTask = tasks.find(t => t.id === taskId);
       const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -87,11 +134,33 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
         task.id === taskId ? updatedTask : task
       ));
       
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_UPDATE',
+        metadata: {
+          taskId,
+          projectId,
+          updates: updatedData,
+          oldTask,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       toast.success('Task updated successfully');
       setEditingTask(null);
     } catch (error) {
       console.error('Error updating task:', error);
       toast.error('Failed to update task');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_UPDATE',
+        metadata: {
+          taskId,
+          projectId,
+          error: 'Failed to update task',
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   };
 
@@ -108,10 +177,32 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete task');
+
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_DELETE',
+        metadata: {
+          taskId,
+          projectId,
+          taskTitle: taskToDelete.title,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       toast.success('Task deleted successfully');
     } catch (error) {
       setTasks(prev => [...prev, taskToDelete]);
       toast.error('Failed to delete task');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'TASK_DELETE',
+        metadata: {
+          taskId,
+          projectId,
+          error: 'Failed to delete task',
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   };
 

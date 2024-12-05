@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { logUserActivity } from '@/lib/logging';
+import { logClientActivity } from '@/lib/logging';
 
 export default function SignUpForm() {
   const [name, setName] = useState('');
@@ -31,7 +31,7 @@ export default function SignUpForm() {
         const userAgent = navigator.userAgent || 'Unknown User-Agent';
 
         // Log user activity after successful signup
-        await logUserActivity({
+        await logClientActivity({
           userId: data.user?.id, // Use the ID of the newly created user
           action: 'SIGNUP',
           metadata: {

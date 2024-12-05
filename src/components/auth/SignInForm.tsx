@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { logUserActivity } from '@/lib/logging';
+import { logClientActivity } from '@/lib/logging';
 
 export default function SignInForm() {
   const [email, setEmail] = useState('');
@@ -49,7 +49,7 @@ export default function SignInForm() {
 
         // Log user activity
         try {
-          await logUserActivity({
+          await logClientActivity({
             userId,
             action: 'LOGIN',
             metadata: { email },

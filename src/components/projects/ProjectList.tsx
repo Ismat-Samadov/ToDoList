@@ -4,8 +4,10 @@
 import { useState, Dispatch, SetStateAction } from 'react';
 import { Project } from '@prisma/client';
 import { toast } from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 import ProjectCard from './ProjectCard';
 import CreateProjectModal from './CreateProjectModal';
+import { logClientActivity } from '@/lib/logging';
 
 interface ProjectWithCount extends Project {
   _count: {
@@ -27,8 +29,12 @@ export default function ProjectList({
   onProjectUpdated
 }: ProjectListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { data: session } = useSession();
 
   const handleCreateProject = async (projectData: { name: string; description?: string }) => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -37,16 +43,40 @@ export default function ProjectList({
       });
 
       if (!response.ok) throw new Error('Failed to create project');
+      const project = await response.json();
+
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_CREATE',
+        metadata: {
+          projectId: project.id,
+          name: project.name,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       await onProjectUpdated();
       setShowCreateModal(false);
       toast.success('Project created successfully');
     } catch (error) {
       console.error('Error creating project:', error);
       toast.error('Failed to create project');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_CREATE',
+        metadata: {
+          error: 'Failed to create project',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleUpdateProject = async (projectId: string, data: { name: string; description?: string }) => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
     try {
       const response = await fetch('/api/projects', {
         method: 'PATCH',
@@ -55,27 +85,73 @@ export default function ProjectList({
       });
 
       if (!response.ok) throw new Error('Failed to update project');
+      const project = await response.json();
+
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_UPDATE',
+        metadata: {
+          projectId: project.id,
+          name: project.name,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       await onProjectUpdated();
       toast.success('Project updated successfully');
     } catch (error) {
       console.error('Error updating project:', error);
       toast.error('Failed to update project');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_UPDATE',
+        metadata: {
+          projectId,
+          error: 'Failed to update project',
+          timestamp: new Date().toISOString()
+        }
+      });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
+    if (!session?.user?.id) return;
+    setIsLoading(true);
     try {
       const response = await fetch(`/api/projects?id=${projectId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete project');
+
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_DELETE',
+        metadata: {
+          projectId,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       await onProjectUpdated();
       toast.success('Project deleted successfully');
     } catch (error) {
       console.error('Error deleting project:', error);
       toast.error('Failed to delete project');
+      await logClientActivity({
+        userId: session.user.id,
+        action: 'PROJECT_DELETE',
+        metadata: {
+          projectId,
+          error: 'Failed to delete project',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,7 +161,9 @@ export default function ProjectList({
         <h2 className="text-2xl font-semibold text-white">Projects</h2>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={isLoading}
+          className={`bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors
+            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
         >
           New Project
         </button>
@@ -105,6 +183,7 @@ export default function ProjectList({
               onSelect={() => onProjectSelect(project)}
               onDelete={handleDeleteProject}
               onUpdate={handleUpdateProject}
+              disabled={isLoading}
             />
           ))}
         </div>
@@ -114,6 +193,7 @@ export default function ProjectList({
         <CreateProjectModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateProject}
+          isDisabled={isLoading}
         />
       )}
     </div>
