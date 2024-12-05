@@ -4,20 +4,24 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
 import { logUserActivity } from '@/lib/logging';
+import { z } from 'zod';
 
-// GET tasks for a specific project
+const taskSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  dueDate: z.string().optional().nullable(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).default('PENDING'),
+});
+
 export async function GET(
   request: Request,
   { params }: { params: { projectId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
-
   try {
-    // Verify project access
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return new NextResponse('Unauthorized', { status: 401 });
+
     const project = await prisma.project.findFirst({
       where: {
         id: params.projectId,
@@ -27,10 +31,7 @@ export async function GET(
     });
 
     if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
     const tasks = await prisma.task.findMany({
@@ -38,42 +39,33 @@ export async function GET(
         projectId: params.projectId,
         isDeleted: false,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { position: 'asc' },
     });
 
     await logUserActivity({
       userId: session.user.id,
       action: 'PROJECT_TASKS_VIEW',
-      metadata: {
-        projectId: params.projectId,
-        taskCount: tasks.length,
-        timestamp: new Date().toISOString()
-      }
+      metadata: { projectId: params.projectId }
     });
 
     return NextResponse.json(tasks);
   } catch (error) {
-    console.error('Error fetching project tasks:', error);
-    return NextResponse.json(
-      { message: 'Error fetching tasks' },
-      { status: 500 }
-    );
+    console.error('Error fetching tasks:', error);
+    return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }
 }
 
-// CREATE new task in project
 export async function POST(
   request: Request,
   { params }: { params: { projectId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
-
   try {
-    // Verify project access
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return new NextResponse('Unauthorized', { status: 401 });
+
+    const body = await request.json();
+    const validatedData = taskSchema.parse(body);
+
     const project = await prisma.project.findFirst({
       where: {
         id: params.projectId,
@@ -83,37 +75,40 @@ export async function POST(
     });
 
     if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
-    const body = await request.json();
+    const lastTask = await prisma.task.findFirst({
+      where: { projectId: params.projectId },
+      orderBy: { position: 'desc' },
+      select: { position: true },
+    });
+
     const task = await prisma.task.create({
       data: {
-        ...body,
+        ...validatedData,
+        position: (lastTask?.position ?? 0) + 1000,
         userId: session.user.id,
         projectId: params.projectId,
+        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
       },
     });
 
     await logUserActivity({
       userId: session.user.id,
-      action: 'PROJECT_TASK_CREATE',
+      action: 'TASK_CREATE',
       metadata: {
         projectId: params.projectId,
         taskId: task.id,
-        timestamp: new Date().toISOString()
       }
     });
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error('Error creating task:', error);
-    return NextResponse.json(
-      { message: 'Error creating task' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ message: 'Invalid task data', errors: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }
 }
