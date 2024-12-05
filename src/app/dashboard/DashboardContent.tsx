@@ -8,7 +8,6 @@ import TaskList from '@/components/tasks/TaskList';
 import TaskForm from '@/components/tasks/TaskForm';
 import Navigation from '@/components/Navigation';
 import { toast } from 'react-hot-toast';
-import AddTaskFAB from '@/components/tasks/AddTaskFAB';
 
 export default function DashboardContent() {
   const { data: session, status } = useSession();
@@ -19,36 +18,17 @@ export default function DashboardContent() {
 
   useEffect(() => {
     if (status === 'loading') return;
-
     if (!session?.user) {
       toast.error('You must be logged in to access the dashboard.');
       router.replace('/auth/signin');
       return;
     }
-
     setIsInitialLoading(false);
   }, [session, status, router]);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      toast.error('Session expired. Please sign in again.');
-      router.replace('/auth/signin');
-    }
-  }, [status, router]);
-
-  const handleTaskAdded = () => {
-    setRefreshTrigger((prev) => prev + 1);
-    setShowMobileForm(false);
-    toast.success('Task added successfully!');
-  };
-
   if (isInitialLoading || status === 'loading' || !session?.user) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center bg-[#1a1f25]"
-        role="status"
-        aria-label="Loading dashboard"
-      >
+      <div className="min-h-screen flex items-center justify-center bg-[#1a1f25]">
         <div className="text-center text-white">
           <p className="text-lg">Loading...</p>
           <p className="text-sm text-gray-400 mt-2">Please wait while we set up your dashboard</p>
@@ -61,68 +41,75 @@ export default function DashboardContent() {
     <div className="min-h-screen bg-[#1a1f25]">
       <Navigation />
       
-      <main className="pt-16">
-        {/* Subtitle */}
-        <div className="px-4 pb-2">
-          <p className="text-xl text-gray-400">
+      <main className="px-4">
+        <div className="pt-20 pb-4">
+          <p className="text-[#94a3b8] text-xl">
             Manage your tasks efficiently
           </p>
         </div>
 
-        {/* Task List Container */}
-        <div className="px-4">
-          <section 
-            className="bg-[#1e242c] rounded-2xl p-4"
-            aria-label="Your tasks"
+        <TaskList refreshTrigger={refreshTrigger} />
+
+        {/* Add Task Button */}
+        <button
+          onClick={() => setShowMobileForm(true)}
+          className="fixed right-4 bottom-20 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-50"
+          aria-label="Add new task"
+        >
+          <svg
+            className="w-8 h-8 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <TaskList 
-              refreshTrigger={refreshTrigger}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 6v12m6-6H6"
             />
-          </section>
-        </div>
+          </svg>
+        </button>
 
-        {/* Add Task FAB */}
-        <AddTaskFAB onClick={() => setShowMobileForm(true)} />
-
-        {/* Task Form Modal */}
+        {/* Add Task Modal */}
         {showMobileForm && (
-          <div 
-            className="fixed inset-0 bg-[#1a1f25] z-50 animate-in fade-in slide-in-from-bottom"
-            aria-modal="true"
-            role="dialog"
-          >
-            <nav className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-              <h2 className="text-xl font-semibold text-white">Add New Task</h2>
-              <button
-                onClick={() => setShowMobileForm(false)}
-                className="p-2 text-gray-400"
-                aria-label="Close modal"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <div className="fixed inset-0 bg-[#1a1f25] z-50">
+            <div className="flex flex-col h-full">
+              <div className="px-4 py-3 flex items-center justify-between border-b border-[#2f3641]">
+                <h2 className="text-xl font-semibold text-white">Add New Task</h2>
+                <button
+                  onClick={() => setShowMobileForm(false)}
+                  className="text-gray-400 p-1"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </nav>
-            
-            <div className="p-4 h-[calc(100vh-64px)] overflow-y-auto">
-              <TaskForm onTaskAdded={handleTaskAdded} />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <TaskForm onTaskAdded={() => {
+                  setRefreshTrigger(prev => prev + 1);
+                  setShowMobileForm(false);
+                  toast.success('Task added successfully!');
+                }} />
+              </div>
             </div>
           </div>
         )}
-
-        {/* Safe Area Spacing */}
-        <div className="h-24" />
       </main>
+
+      {/* Bottom spacing for mobile browsers */}
+      <div className="h-28" />
     </div>
   );
 }
