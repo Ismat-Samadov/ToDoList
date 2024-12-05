@@ -1,7 +1,7 @@
 // src/components/projects/ProjectList.tsx
 'use client';
 
-import { useState, Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
 import { Project } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -17,14 +17,12 @@ interface ProjectWithCount extends Project {
 
 interface ProjectListProps {
   projects: ProjectWithCount[];
-  selectedProject: ProjectWithCount | null;
-  onProjectSelect: Dispatch<SetStateAction<ProjectWithCount | null>>;
+  onProjectSelect: (project: ProjectWithCount) => void;
   onProjectUpdated: () => Promise<void>;
 }
 
 export default function ProjectList({
   projects,
-  selectedProject,
   onProjectSelect,
   onProjectUpdated
 }: ProjectListProps) {
@@ -155,6 +153,10 @@ export default function ProjectList({
     }
   };
 
+  const handleProjectClick = (project: ProjectWithCount) => {
+    onProjectSelect(project);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -170,7 +172,7 @@ export default function ProjectList({
       </div>
 
       {projects.length === 0 ? (
-        <div className="text-center py-8">
+        <div className="text-center py-8 bg-[#2f3641] rounded-xl">
           <p className="text-gray-400">No projects yet. Create your first project to get started!</p>
         </div>
       ) : (
@@ -179,8 +181,7 @@ export default function ProjectList({
             <ProjectCard
               key={project.id}
               project={project}
-              isSelected={selectedProject?.id === project.id}
-              onSelect={() => onProjectSelect(project)}
+              onSelect={() => handleProjectClick(project)}
               onDelete={handleDeleteProject}
               onUpdate={handleUpdateProject}
               disabled={isLoading}
