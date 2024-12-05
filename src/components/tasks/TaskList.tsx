@@ -2,33 +2,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Task } from '@prisma/client';
+import { Task, Status, Priority } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
-import { logUserActivity } from '@/lib/logging';
 import TaskEditModal from './TaskEditModal';
 
 interface TaskListProps {
+  projectId: string;
   refreshTrigger: number;
 }
 
-type TaskFilter = 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+interface UpdateTaskData {
+  status?: Status;
+  priority?: Priority;
+  title?: string;
+  description?: string | null;
+  dueDate?: Date | null;
+}
 
-export default function TaskList({ refreshTrigger }: TaskListProps) {
+export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState<TaskFilter>('ALL');
-  const [isLoading, setIsLoading] = useState(false);
+  const [filter, setFilter] = useState<Status | 'ALL'>('ALL');
+  const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { data: session } = useSession();
 
   useEffect(() => {
     fetchTasks();
-  }, [refreshTrigger]);
+  }, [projectId, refreshTrigger]);
 
   const fetchTasks = async () => {
-    setIsLoading(true);
     try {
-      const res = await fetch('/api/tasks');
+      const res = await fetch(`/api/projects/${projectId}/tasks`);
       if (!res.ok) throw new Error('Failed to fetch tasks');
       const data = await res.json();
       setTasks(data);
@@ -40,41 +45,36 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     }
   };
 
-  const updateTaskStatus = async (id: string, status: string) => {
+  const updateTaskStatus = async (taskId: string, newStatus: Status) => {
     if (!session?.user?.id) return;
 
-    const oldTask = tasks.find(t => t.id === id);
+    const oldTask = tasks.find(t => t.id === taskId);
     if (!oldTask) return;
 
-    setTasks(currentTasks =>
-      currentTasks.map(task =>
-        task.id === id ? { ...task, status } : task
-      )
-    );
-
     try {
-      const res = await fetch(`/api/tasks/${id}`, {
+      const updatedTasks = tasks.map(task =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      );
+      setTasks(updatedTasks);
+
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       });
       
       if (!res.ok) throw new Error('Failed to update task');
       toast.success('Task status updated');
       
     } catch (error) {
-      setTasks(currentTasks =>
-        currentTasks.map(task =>
-          task.id === id ? { ...task, status: oldTask.status } : task
-        )
-      );
+      setTasks(tasks); // Revert to original state
       toast.error('Failed to update task status');
     }
   };
 
-  const updateTask = async (taskId: string, updatedData: Partial<Task>) => {
+  const updateTask = async (taskId: string, updatedData: UpdateTaskData) => {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
@@ -83,11 +83,9 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
       if (!res.ok) throw new Error('Failed to update task');
 
       const updatedTask = await res.json();
-      setTasks(currentTasks =>
-        currentTasks.map(task =>
-          task.id === taskId ? updatedTask : task
-        )
-      );
+      setTasks(tasks.map(task =>
+        task.id === taskId ? updatedTask : task
+      ));
       
       toast.success('Task updated successfully');
       setEditingTask(null);
@@ -97,16 +95,18 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     }
   };
 
-  const deleteTask = async (id: string) => {
+  const deleteTask = async (taskId: string) => {
     if (!session?.user?.id || !confirm('Delete this task?')) return;
 
-    const taskToDelete = tasks.find(t => t.id === id);
+    const taskToDelete = tasks.find(t => t.id === taskId);
     if (!taskToDelete) return;
 
-    setTasks(currentTasks => currentTasks.filter(task => task.id !== id));
+    setTasks(tasks.filter(task => task.id !== taskId));
 
     try {
-      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) throw new Error('Failed to delete task');
       toast.success('Task deleted successfully');
     } catch (error) {
@@ -115,55 +115,60 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     }
   };
 
-  const handleFilterChange = () => {
-    const filters: TaskFilter[] = ['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'];
-    const currentIndex = filters.indexOf(filter);
-    const nextIndex = (currentIndex + 1) % filters.length;
-    setFilter(filters[nextIndex]);
-  };
-
   const filteredTasks = tasks.filter(task => {
     if (filter === 'ALL') return true;
     return task.status === filter;
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <p className="text-gray-400">Loading tasks...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-white">Task List</h2>
-        <button 
-          onClick={handleFilterChange}
-          className="px-6 py-2 bg-[#2f3641] text-gray-300 rounded-full text-sm"
+        <h2 className="text-xl font-medium text-white">Tasks</h2>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as Status | 'ALL')}
+          className="px-4 py-2 bg-[#2f3641] text-gray-300 rounded-lg text-sm"
         >
-          {filter === 'ALL' ? 'All Tasks' : 
-           filter === 'IN_PROGRESS' ? 'In Progress' : 
-           filter.charAt(0) + filter.slice(1).toLowerCase()}
-        </button>
+          <option value="ALL">All Tasks</option>
+          <option value="PENDING">Pending</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
       </div>
 
-      <div className="space-y-3">
-        {filteredTasks.length === 0 ? (
-          <p className="text-center text-gray-400 py-4">No tasks found</p>
-        ) : (
-          filteredTasks.map((task) => (
-            <div key={task.id} className="bg-[#2f3641] rounded-2xl p-4">
+      {filteredTasks.length === 0 ? (
+        <div className="text-center py-8 bg-[#2f3641] rounded-xl">
+          <p className="text-gray-400">No tasks found</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredTasks.map((task) => (
+            <div key={task.id} className="bg-[#2f3641] rounded-xl p-4">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg text-white font-normal">{task.title}</h3>
-                <span
-                  className={`px-3 py-1 rounded-md text-white text-sm ${
-                    task.priority === 'HIGH' ? 'bg-red-800' :
-                    task.priority === 'MEDIUM' ? 'bg-[#8B4513]' :
-                    'bg-[#006400]'
-                  }`}
-                >
+                <span className={`px-3 py-1 rounded-md text-white text-sm ${
+                  task.priority === 'HIGH' ? 'bg-red-800' :
+                  task.priority === 'MEDIUM' ? 'bg-[#8B4513]' :
+                  'bg-[#006400]'
+                }`}>
                   {task.priority}
                 </span>
               </div>
 
-              <p className="text-gray-400 text-base mb-2">{task.description}</p>
+              {task.description && (
+                <p className="text-gray-400 text-sm mb-2">{task.description}</p>
+              )}
 
               {task.dueDate && (
-                <p className="text-gray-400 text-base mb-4">
+                <p className="text-gray-400 text-sm mb-4">
                   Due: {new Date(task.dueDate).toLocaleDateString()}
                 </p>
               )}
@@ -171,30 +176,32 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
               <div className="flex justify-between items-center gap-2">
                 <select
                   value={task.status}
-                  onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                  className="bg-[#1e242c] text-white px-4 py-2 rounded-xl flex-1 text-base"
+                  onChange={(e) => updateTaskStatus(task.id, e.target.value as Status)}
+                  className="bg-[#1e242c] text-white px-3 py-1.5 rounded-lg flex-1 text-sm"
                 >
                   <option value="PENDING">Pending</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="COMPLETED">Completed</option>
                 </select>
+                
                 <button
                   onClick={() => setEditingTask(task)}
-                  className="text-blue-400 text-base px-3"
+                  className="text-blue-400 hover:text-blue-300 text-sm px-3 py-1.5"
                 >
                   Edit
                 </button>
+                
                 <button
                   onClick={() => deleteTask(task.id)}
-                  className="text-red-400 text-base px-3"
+                  className="text-red-400 hover:text-red-300 text-sm px-3 py-1.5"
                 >
                   Delete
                 </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {editingTask && (
         <TaskEditModal

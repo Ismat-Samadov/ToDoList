@@ -4,10 +4,41 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Project, Task } from '@prisma/client';
 import TaskList from '@/components/tasks/TaskList';
 import TaskForm from '@/components/tasks/TaskForm';
 import Navigation from '@/components/Navigation';
+import ProjectList from '@/components/projects/ProjectList';
 import { toast } from 'react-hot-toast';
+
+interface DashboardContentProps {
+  initialData?: {
+    projects: Array<Project & {
+      _count: {
+        tasks: number;
+      };
+      tasks: Task[];
+    }>;
+    recentTasks: Task[];
+    taskStats: {
+      total: number;
+      completed: number;
+      inProgress: number;
+      pending: number;
+    };
+  };
+  user?: {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+  };
+}
+
+interface ProjectWithCount extends Project {
+  _count: {
+    tasks: number;
+  };
+}
 
 export default function DashboardContent() {
   const { data: session, status } = useSession();
@@ -15,6 +46,9 @@ export default function DashboardContent() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showMobileForm, setShowMobileForm] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<ProjectWithCount | null>(null);
+  const [projects, setProjects] = useState<ProjectWithCount[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -23,8 +57,30 @@ export default function DashboardContent() {
       router.replace('/auth/signin');
       return;
     }
+    fetchProjects();
     setIsInitialLoading(false);
   }, [session, status, router]);
+
+  const fetchProjects = async () => {
+    if (!session?.user?.id) return;
+    
+    setIsLoadingProjects(true);
+    try {
+      const response = await fetch('/api/projects');
+      if (!response.ok) throw new Error('Failed to fetch projects');
+      const data: ProjectWithCount[] = await response.json();
+      setProjects(data);
+      
+      if (data.length > 0 && !selectedProject) {
+        setSelectedProject(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      toast.error('Failed to load projects');
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
 
   if (isInitialLoading || status === 'loading' || !session?.user) {
     return (
@@ -43,40 +99,74 @@ export default function DashboardContent() {
       
       <main className="px-4">
         <div className="pt-20 pb-4">
+          <h1 className="text-white text-2xl font-semibold mb-2">
+            Welcome, {session.user.name || 'User'}
+          </h1>
           <p className="text-[#94a3b8] text-xl">
-            Manage your tasks efficiently
+            Manage your projects and tasks
           </p>
         </div>
 
-        <TaskList refreshTrigger={refreshTrigger} />
+        {/* Project List Section */}
+        <div className="mb-8">
+    {isLoadingProjects ? (
+      <div className="text-center py-8">
+        <p className="text-gray-400">Loading projects...</p>
+      </div>
+    ) : (
+      <ProjectList
+        projects={projects}
+        selectedProject={selectedProject}
+        onProjectSelect={setSelectedProject}
+        onProjectUpdated={fetchProjects}
+      />
+    )}
+  </div>
+
+        {/* Task List Section */}
+        {selectedProject && (
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Tasks for {selectedProject.name}
+            </h2>
+            <TaskList 
+              projectId={selectedProject.id} 
+              refreshTrigger={refreshTrigger} 
+            />
+          </div>
+        )}
 
         {/* Add Task Button */}
-        <button
-          onClick={() => setShowMobileForm(true)}
-          className="fixed right-4 bottom-20 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-50"
-          aria-label="Add new task"
-        >
-          <svg
-            className="w-8 h-8 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {selectedProject && (
+          <button
+            onClick={() => setShowMobileForm(true)}
+            className="fixed right-4 bottom-20 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-50"
+            aria-label="Add new task"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 6v12m6-6H6"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 6v12m6-6H6"
+              />
+            </svg>
+          </button>
+        )}
 
         {/* Add Task Modal */}
-        {showMobileForm && (
+        {showMobileForm && selectedProject && (
           <div className="fixed inset-0 bg-[#1a1f25] z-50">
             <div className="flex flex-col h-full">
               <div className="px-4 py-3 flex items-center justify-between border-b border-[#2f3641]">
-                <h2 className="text-xl font-semibold text-white">Add New Task</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  Add Task to {selectedProject.name}
+                </h2>
                 <button
                   onClick={() => setShowMobileForm(false)}
                   className="text-gray-400 p-1"
@@ -97,13 +187,34 @@ export default function DashboardContent() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                <TaskForm onTaskAdded={() => {
-                  setRefreshTrigger(prev => prev + 1);
-                  setShowMobileForm(false);
-                  toast.success('Task added successfully!');
-                }} />
+                <TaskForm 
+                  projectId={selectedProject.id}
+                  onTaskAdded={() => {
+                    setRefreshTrigger(prev => prev + 1);
+                    setShowMobileForm(false);
+                    toast.success('Task added successfully!');
+                  }} 
+                />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* No Project Selected Message */}
+        {!selectedProject && projects.length > 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-400">
+              Please select a project to view and manage tasks
+            </p>
+          </div>
+        )}
+
+        {/* No Projects Message */}
+        {projects.length === 0 && !isLoadingProjects && (
+          <div className="text-center py-8">
+            <p className="text-gray-400">
+              You don't have any projects yet. Create your first project to get started!
+            </p>
           </div>
         )}
       </main>

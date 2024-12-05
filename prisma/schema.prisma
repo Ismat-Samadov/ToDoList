@@ -7,22 +7,44 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Project {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  tasks       Task[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  isDeleted   Boolean     @default(false)
+  color       String?     // For project color coding
+  isArchived  Boolean     @default(false)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
 model Task {
   id          String      @id @default(cuid())
   title       String
   description String?
-  status      String      @default("PENDING")
-  priority    String      @default("MEDIUM")
+  status      Status      @default(PENDING)
+  priority    Priority    @default(MEDIUM)
   dueDate     DateTime?
   userId      String
+  projectId   String      // New field for project association
   user        User        @relation(fields: [userId], references: [id])
+  project     Project     @relation(fields: [projectId], references: [id])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?   
   isDeleted   Boolean     @default(false)
   events      TaskEvent[]
+  position    Int         @default(0)  // For task ordering within projects
 
   @@index([userId])
+  @@index([projectId])
   @@index([status])
   @@index([createdAt])
 }
@@ -33,6 +55,7 @@ model User {
   email         String         @unique
   password      String
   tasks         Task[]
+  projects      Project[]      // New relation to projects
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?     
@@ -40,6 +63,8 @@ model User {
   userActivity  UserActivity[]
   lastLoginAt   DateTime?
   loginCount    Int            @default(0)
+  settings      Json?          // For user preferences
+  avatar        String?        // For user profile picture
 
   @@index([email])
   @@index([createdAt])
@@ -56,10 +81,12 @@ model UserActivity {
   createdAt   DateTime    @default(now())
   deletedAt   DateTime?   
   isDeleted   Boolean     @default(false)
+  projectId   String?     // For project-related activities
 
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+  @@index([projectId])
 }
 
 model TaskEvent {
@@ -70,19 +97,32 @@ model TaskEvent {
   oldValue    String?
   newValue    String?
   createdAt   DateTime  @default(now())
+  projectId   String?   // For project context
 
   @@index([taskId])
   @@index([type])
+  @@index([projectId])
 }
 
 enum Status {
   PENDING
   IN_PROGRESS
   COMPLETED
+  ON_HOLD      // New status
+  CANCELLED    // New status
 }
 
 enum Priority {
   LOW
   MEDIUM
   HIGH
+  URGENT      // New priority level
+}
+
+// New enum for project roles (can be used for future authorization)
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
 }

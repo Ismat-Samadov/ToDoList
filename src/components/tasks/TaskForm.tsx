@@ -3,39 +3,26 @@
 
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { logUserActivity } from '@/lib/logging';
 import { useSession } from 'next-auth/react';
-
-interface CustomSession {
-  user: {
-    id: string;
-    email?: string;
-    name?: string;
-  };
-}
+import { logUserActivity } from '@/lib/logging';
 
 interface TaskFormProps {
+  projectId: string;
   onTaskAdded: () => void;
 }
 
-export default function TaskForm({ onTaskAdded }: TaskFormProps) {
+export default function TaskForm({ projectId, onTaskAdded }: TaskFormProps) {
   const today = new Date().toISOString().split('T')[0];
-  const { data: session, status } = useSession() as { data: CustomSession | null; status: 'authenticated' | 'unauthenticated' | 'loading' };
+  const { data: session } = useSession();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('LOW');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
   const [dueDate, setDueDate] = useState(today);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (status === 'loading') {
-      toast.error('Session is still loading. Please wait and try again.');
-      return;
-    }
-
     if (!session?.user?.id) {
       toast.error('You must be logged in to create tasks.');
       return;
@@ -44,40 +31,41 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/tasks', {
+      const res = await fetch(`/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, priority, dueDate }),
+        body: JSON.stringify({
+          title,
+          description,
+          priority,
+          dueDate,
+          projectId
+        }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        console.error('Task creation error:', errorData);
-        throw new Error(errorData.message || 'Failed to create task');
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to create task');
       }
 
       const task = await res.json();
 
-      try {
-        await logUserActivity({
-          userId: session.user.id,
-          action: 'TASK_CREATE',
-          metadata: {
-            taskId: task.id,
-            title: task.title,
-            priority: task.priority,
-            dueDate: task.dueDate,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      } catch (logError) {
-        console.error('Failed to log task creation activity:', logError);
-      }
+      await logUserActivity({
+        userId: session.user.id,
+        action: 'TASK_CREATE',
+        metadata: {
+          taskId: task.id,
+          projectId,
+          title: task.title,
+          priority: task.priority,
+          dueDate: task.dueDate,
+        },
+      });
 
       toast.success('Task created successfully!');
       setTitle('');
       setDescription('');
-      setPriority('LOW');
+      setPriority('MEDIUM');
       setDueDate(today);
       onTaskAdded();
     } catch (error) {
@@ -141,45 +129,12 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
       <button
         type="submit"
         className={`w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium ${
-          isSubmitting ? 'opacity-50' : ''
+          isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
         }`}
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Creating Task...' : 'Create Task'}
       </button>
-
-      {/* Quick Date Buttons */}
-      <div className="flex gap-2 overflow-x-auto py-2">
-        <button
-          type="button"
-          onClick={() => setDueDate(today)}
-          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            setDueDate(tomorrow.toISOString().split('T')[0]);
-          }}
-          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
-        >
-          Tomorrow
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const nextWeek = new Date();
-            nextWeek.setDate(nextWeek.getDate() + 7);
-            setDueDate(nextWeek.toISOString().split('T')[0]);
-          }}
-          className="px-4 py-2 bg-[#1e242c] text-white rounded-full text-sm whitespace-nowrap"
-        >
-          Next Week
-        </button>
-      </div>
     </form>
   );
 }

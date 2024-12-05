@@ -1,9 +1,12 @@
 // src/app/dashboard/page.tsx
 import { getServerSession } from 'next-auth/next';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth.config';
 import DashboardContent from './DashboardContent';
-import { headers } from 'next/headers';
+import { Project, Task } from '@prisma/client';
+import { logUserActivity } from '@/lib/logging';
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -13,12 +16,27 @@ async function validateSession() {
     const session = await getServerSession(authOptions);
     const headersList = headers();
     
-    // Check for required session data
     if (!session?.user?.id) {
       throw new Error('Invalid session');
     }
 
-    // Additional security checks can be added here
+    const clientIp = headersList.get('x-forwarded-for') || 
+                    headersList.get('x-real-ip') || 
+                    'Unknown IP';
+    const userAgent = headersList.get('user-agent') || 'Unknown User-Agent';
+
+    await logUserActivity({
+      userId: session.user.id,
+      action: 'DASHBOARD_ACCESS',
+      metadata: {
+        timestamp: new Date().toISOString(),
+        clientIp,
+        userAgent
+      },
+      ipAddress: clientIp,
+      userAgent
+    });
+
     return session;
   } catch (error) {
     console.error('Session validation error:', error);
@@ -28,34 +46,42 @@ async function validateSession() {
 
 export default async function DashboardPage() {
   try {
-    // Validate session
     const session = await validateSession();
     
     if (!session) {
       redirect('/auth/signin');
     }
 
-    // Metadata for logging/debugging
-    const timestamp = new Date().toISOString();
-    console.log(`Dashboard accessed by user ${session.user.id} at ${timestamp}`);
-
     return (
       <>
-        {/* Add meta tags for dashboard */}
         <meta name="robots" content="noindex,nofollow" />
+        <meta name="description" content="Project and task management dashboard" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        
         <DashboardContent />
       </>
     );
   } catch (error) {
     console.error('Error in DashboardPage:', error);
     
-    // Log the error details but don't expose them to the client
     const errorDetails = {
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error',
       path: '/dashboard'
     };
-    console.error('Dashboard error details:', errorDetails);
+
+    try {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.id) {
+        await logUserActivity({
+          userId: session.user.id,
+          action: 'DASHBOARD_ERROR',
+          metadata: errorDetails
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
 
     redirect('/auth/signin');
   }
