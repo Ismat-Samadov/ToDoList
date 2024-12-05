@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface CreateProjectModalProps {
   onClose: () => void;
@@ -12,10 +13,16 @@ export default function CreateProjectModal({ onClose, onCreate }: CreateProjectM
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setError('');
+
+    if (!name.trim()) {
+      setError('Project name is required');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -23,6 +30,12 @@ export default function CreateProjectModal({ onClose, onCreate }: CreateProjectM
         name: name.trim(), 
         description: description.trim() || undefined 
       });
+      toast.success('Project created successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      setError('Failed to create project. Please try again.');
+      toast.error('Failed to create project');
     } finally {
       setIsSubmitting(false);
     }
@@ -50,13 +63,19 @@ export default function CreateProjectModal({ onClose, onCreate }: CreateProjectM
           </button>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-red-500">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-300 mb-1"
             >
-              Project Name
+              Project Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -66,6 +85,7 @@ export default function CreateProjectModal({ onClose, onCreate }: CreateProjectM
               className="w-full px-4 py-2 bg-[#1e242c] rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               placeholder="Enter project name"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -82,6 +102,7 @@ export default function CreateProjectModal({ onClose, onCreate }: CreateProjectM
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-2 bg-[#1e242c] rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 min-h-[100px]"
               placeholder="Enter project description"
+              disabled={isSubmitting}
             />
           </div>
 
