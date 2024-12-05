@@ -6,8 +6,13 @@ import { authOptions } from '@/lib/auth.config';
 import { logUserActivity } from '@/lib/logging';
 import { headers } from 'next/headers';
 import { Project } from '@prisma/client';
+import { z } from 'zod';
 
-// GET all projects
+const projectSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().max(1000).nullable().optional(),
+});
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -58,7 +63,6 @@ export async function GET(request: Request) {
   }
 }
 
-// CREATE new project
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -118,7 +122,6 @@ export async function POST(request: Request) {
   }
 }
 
-// UPDATE project
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -197,7 +200,6 @@ export async function PATCH(request: Request) {
   }
 }
 
-// DELETE project
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);

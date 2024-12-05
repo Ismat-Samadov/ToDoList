@@ -1,3 +1,5 @@
+// src/types/gtag.d.ts
+
 interface Window {
     gtag: (
       type: string,
