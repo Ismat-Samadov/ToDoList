@@ -6,6 +6,7 @@ import { Task } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import { logUserActivity } from '@/lib/logging';
+import TaskEditModal from './TaskEditModal';
 
 interface TaskListProps {
   refreshTrigger: number;
@@ -17,6 +18,7 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<TaskFilter>('ALL');
   const [isLoading, setIsLoading] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -51,17 +53,46 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     );
 
     try {
-      await fetch(`/api/tasks/${id}`, {
+      const res = await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      
+      if (!res.ok) throw new Error('Failed to update task');
+      toast.success('Task status updated');
+      
     } catch (error) {
       setTasks(currentTasks =>
         currentTasks.map(task =>
           task.id === id ? { ...task, status: oldTask.status } : task
         )
       );
+      toast.error('Failed to update task status');
+    }
+  };
+
+  const updateTask = async (taskId: string, updatedData: Partial<Task>) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!res.ok) throw new Error('Failed to update task');
+
+      const updatedTask = await res.json();
+      setTasks(currentTasks =>
+        currentTasks.map(task =>
+          task.id === taskId ? updatedTask : task
+        )
+      );
+      
+      toast.success('Task updated successfully');
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error updating task:', error);
       toast.error('Failed to update task');
     }
   };
@@ -75,26 +106,26 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
     setTasks(currentTasks => currentTasks.filter(task => task.id !== id));
 
     try {
-      await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete task');
+      toast.success('Task deleted successfully');
     } catch (error) {
       setTasks(prev => [...prev, taskToDelete]);
       toast.error('Failed to delete task');
     }
   };
 
-  // Filter tasks based on selected filter
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'ALL') return true;
-    return task.status === filter;
-  });
-
   const handleFilterChange = () => {
-    // Cycle through filters
     const filters: TaskFilter[] = ['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'];
     const currentIndex = filters.indexOf(filter);
     const nextIndex = (currentIndex + 1) % filters.length;
     setFilter(filters[nextIndex]);
   };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filter === 'ALL') return true;
+    return task.status === filter;
+  });
 
   return (
     <div className="space-y-4">
@@ -137,19 +168,25 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
                 </p>
               )}
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2">
                 <select
                   value={task.status}
                   onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                  className="bg-[#1e242c] text-white px-4 py-2 rounded-xl w-[80%] text-base"
+                  className="bg-[#1e242c] text-white px-4 py-2 rounded-xl flex-1 text-base"
                 >
                   <option value="PENDING">Pending</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="COMPLETED">Completed</option>
                 </select>
                 <button
+                  onClick={() => setEditingTask(task)}
+                  className="text-blue-400 text-base px-3"
+                >
+                  Edit
+                </button>
+                <button
                   onClick={() => deleteTask(task.id)}
-                  className="text-red-400 text-base"
+                  className="text-red-400 text-base px-3"
                 >
                   Delete
                 </button>
@@ -158,6 +195,14 @@ export default function TaskList({ refreshTrigger }: TaskListProps) {
           ))
         )}
       </div>
+
+      {editingTask && (
+        <TaskEditModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onUpdate={updateTask}
+        />
+      )}
     </div>
   );
 }
