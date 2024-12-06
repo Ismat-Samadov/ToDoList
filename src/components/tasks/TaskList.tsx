@@ -1,10 +1,11 @@
 // src/components/tasks/TaskList.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Task, Status, Priority } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import TaskEditModal from './TaskEditModal';
 import { logClientActivity } from '@/lib/logging';
 
@@ -25,19 +26,32 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<Status | 'ALL'>('ALL');
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
 
-  useEffect(() => {
-    fetchTasks();
-  }, [projectId, refreshTrigger]);
-
-  const fetchTasks = async () => {
-    if (!session?.user?.id) return;
+  const fetchTasks = useCallback(async () => {
+    if (!session?.user?.id || !projectId) return;
+    
     setIsLoading(true);
+    setIsError(false);
+    
     try {
-      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+      const res = await fetch(`/api/tasks?projectId=${projectId}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (res.status === 401) {
+        router.push('/auth/signin');
+        return;
+      }
+
       if (!res.ok) throw new Error('Failed to fetch tasks');
+      
       const data = await res.json();
       setTasks(data);
       
@@ -52,6 +66,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
       });
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      setIsError(true);
       toast.error('Failed to fetch tasks');
       await logClientActivity({
         userId: session.user.id,
@@ -65,7 +80,13 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.user?.id, projectId, router]);
+
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      fetchTasks();
+    }
+  }, [sessionStatus, fetchTasks, refreshTrigger]);
 
   const updateTaskStatus = async (taskId: string, newStatus: Status) => {
     if (!session?.user?.id) return;
@@ -101,7 +122,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
 
       toast.success('Task status updated');
     } catch (error) {
-      setTasks(tasks);
+      setTasks(tasks); // Revert on error
       toast.error('Failed to update task status');
       await logClientActivity({
         userId: session.user.id,
@@ -211,28 +232,53 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     return task.status === filter;
   });
 
-  if (isLoading) {
+  if (sessionStatus === 'loading' || isLoading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <p className="text-gray-400">Loading tasks...</p>
+      <div className="flex flex-col justify-center items-center h-48">
+        <p className="text-gray-400 mb-4">Loading tasks...</p>
+        {isError && (
+          <button 
+            onClick={fetchTasks}
+            className="text-blue-400 hover:text-blue-300 text-sm px-4 py-2 rounded-lg border border-blue-400 hover:border-blue-300"
+          >
+            Retry Loading
+          </button>
+        )}
       </div>
     );
+  }
+
+  if (sessionStatus === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-medium text-white">Tasks</h2>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as Status | 'ALL')}
-          className="px-4 py-2 bg-[#2f3641] text-gray-300 rounded-lg text-sm"
-        >
-          <option value="ALL">All Tasks</option>
-          <option value="PENDING">Pending</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-        </select>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={fetchTasks}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Refresh tasks"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as Status | 'ALL')}
+            className="px-4 py-2 bg-[#2f3641] text-gray-300 rounded-lg text-sm"
+          >
+            <option value="ALL">All Tasks</option>
+            <option value="PENDING">Pending</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
       </div>
 
       {filteredTasks.length === 0 ? (
