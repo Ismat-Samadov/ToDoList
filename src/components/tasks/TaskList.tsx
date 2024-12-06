@@ -36,7 +36,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     if (!session?.user?.id) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/tasks`);
+      const res = await fetch(`/api/tasks?projectId=${projectId}`);
       if (!res.ok) throw new Error('Failed to fetch tasks');
       const data = await res.json();
       setTasks(data);
@@ -79,7 +79,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
       );
       setTasks(updatedTasks);
 
-      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -121,7 +121,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     
     try {
       const oldTask = tasks.find(t => t.id === taskId);
-      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
@@ -173,7 +173,7 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     setTasks(tasks.filter(task => task.id !== taskId));
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete task');
