@@ -269,4 +269,5 @@ For support:
 ## Contact
 
 Email: ismetsemedov@gmail.com
-GitHub: [Ismat Samadov](https://github.com/Ismat-Samadov/myfrog)
+
+GitHub: [Ismat Samadov](https://github.com/Ismat-Samadov)
