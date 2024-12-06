@@ -34,21 +34,25 @@ export default function TaskForm({ projectId, onTaskAdded, isDisabled = false }:
     try {
       const taskData = {
         title: title.trim(),
-        description: description.trim(),
+        description: description.trim() || undefined,
         priority,
         dueDate,
         projectId
       };
 
-      const res = await fetch(`/api/projects/${projectId}/tasks`, {
+      // Use the /api/tasks endpoint instead
+      const res = await fetch('/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(taskData),
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to create task');
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to create task');
       }
 
       const task = await res.json();
@@ -74,12 +78,13 @@ export default function TaskForm({ projectId, onTaskAdded, isDisabled = false }:
       toast.success('Task created successfully!');
     } catch (error) {
       console.error('Error creating task:', error);
-      toast.error('Failed to create task. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to create task. Please try again.');
+      
       await logClientActivity({
         userId: session.user.id,
         action: 'TASK_CREATE',
         metadata: {
-          error: 'Failed to create task',
+          error: error instanceof Error ? error.message : 'Failed to create task',
           projectId,
           timestamp: new Date().toISOString()
         }
