@@ -250,7 +250,7 @@ model Task {
 
 For support:
 - Create GitHub issue
-- Email: support@myfrog.me
+- Email: ismetsemedov@gmail.com
 
 ## Contributing
 
