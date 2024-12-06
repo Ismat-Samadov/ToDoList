@@ -53,14 +53,20 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
       if (!res.ok) throw new Error('Failed to fetch tasks');
       
       const data = await res.json();
-      setTasks(data);
+
+      // Verify tasks belong to the current project
+      const projectTasks = Array.isArray(data) 
+        ? data.filter(task => task.projectId === projectId)
+        : [];
+
+      setTasks(projectTasks);
       
       await logClientActivity({
         userId: session.user.id,
         action: 'TASK_FETCH',
         metadata: {
           projectId,
-          taskCount: data.length,
+          taskCount: projectTasks.length,
           timestamp: new Date().toISOString()
         }
       });
@@ -83,16 +89,16 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   }, [session?.user?.id, projectId, router]);
 
   useEffect(() => {
-    if (sessionStatus === 'authenticated') {
+    if (sessionStatus === 'authenticated' && projectId) {
       fetchTasks();
     }
-  }, [sessionStatus, fetchTasks, refreshTrigger]);
+  }, [sessionStatus, fetchTasks, refreshTrigger, projectId]);
 
   const updateTaskStatus = async (taskId: string, newStatus: Status) => {
     if (!session?.user?.id) return;
 
     const oldTask = tasks.find(t => t.id === taskId);
-    if (!oldTask) return;
+    if (!oldTask || oldTask.projectId !== projectId) return;
 
     try {
       const updatedTasks = tasks.map(task =>
@@ -102,11 +108,19 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
 
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify({ status: newStatus, projectId }),
       });
       
       if (!res.ok) throw new Error('Failed to update task');
+
+      const updatedTask = await res.json();
+      if (updatedTask.projectId !== projectId) {
+        throw new Error('Task does not belong to current project');
+      }
 
       await logClientActivity({
         userId: session.user.id,
@@ -140,17 +154,29 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   const updateTask = async (taskId: string, updatedData: UpdateTaskData) => {
     if (!session?.user?.id) return;
     
+    const oldTask = tasks.find(t => t.id === taskId);
+    if (!oldTask || oldTask.projectId !== projectId) {
+      toast.error('Invalid task');
+      return;
+    }
+
     try {
-      const oldTask = tasks.find(t => t.id === taskId);
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify({ ...updatedData, projectId }),
       });
 
       if (!res.ok) throw new Error('Failed to update task');
 
       const updatedTask = await res.json();
+      if (updatedTask.projectId !== projectId) {
+        throw new Error('Task does not belong to current project');
+      }
+
       setTasks(tasks.map(task =>
         task.id === taskId ? updatedTask : task
       ));
@@ -189,14 +215,22 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
     if (!session?.user?.id || !confirm('Delete this task?')) return;
 
     const taskToDelete = tasks.find(t => t.id === taskId);
-    if (!taskToDelete) return;
+    if (!taskToDelete || taskToDelete.projectId !== projectId) {
+      toast.error('Invalid task');
+      return;
+    }
 
     setTasks(tasks.filter(task => task.id !== taskId));
 
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ projectId })
       });
+
       if (!res.ok) throw new Error('Failed to delete task');
 
       await logClientActivity({
@@ -230,6 +264,12 @@ export default function TaskList({ projectId, refreshTrigger }: TaskListProps) {
   const filteredTasks = tasks.filter(task => {
     if (filter === 'ALL') return true;
     return task.status === filter;
+  }).sort((a, b) => {
+    // Sort by position first, then by creation date
+    if (a.position !== b.position) {
+      return a.position - b.position;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   if (sessionStatus === 'loading' || isLoading) {
